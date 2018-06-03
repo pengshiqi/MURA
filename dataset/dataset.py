@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import os
-import numpy as np
 from PIL import Image
 from torchvision import transforms as T
 
