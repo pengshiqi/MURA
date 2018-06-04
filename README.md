@@ -1,5 +1,8 @@
 # [Bone X-Ray Deep Learning Competition](https://stanfordmlgroup.github.io/competitions/mura/)
 
+![](https://img.shields.io/badge/language-python-blue.svg)
+![](https://img.shields.io/badge/framework-pytorch-blue.svg)
+
 Path on server: /DB/rhome/sqpeng/PycharmProjects/MURA
 
 ## Dataset
