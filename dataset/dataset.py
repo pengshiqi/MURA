@@ -56,7 +56,7 @@ class MURA_Dataset(object):
 
     def __getitem__(self, index):
         """
-        一次返回一张图片的数据
+        一次返回一张图片的数据：data, label, path
         """
 
         img_path = self.imgs[index]
@@ -76,7 +76,7 @@ class MURA_Dataset(object):
                       self.transforms(data)[0].unsqueeze(0),
                       self.transforms(data)[0].unsqueeze(0)], 0)  # 复制成三通道
 
-        return data, label
+        return data, label, img_path
 
     def __len__(self):
         return len(self.imgs)
