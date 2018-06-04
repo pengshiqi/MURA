@@ -3,7 +3,7 @@
 import os
 import torch as t
 from torch.autograd import Variable
-from torchvision.models import densenet169
+# from torchvision.models import densenet169
 from torch.utils.data import DataLoader
 from torchnet import meter
 from tqdm import tqdm
@@ -11,7 +11,7 @@ from tqdm import tqdm
 from config import opt
 from utils import Visualizer
 from dataset import MURA_Dataset
-# from models import densenet169
+from models import CustomDenseNet169
 
 
 def train(**kwargs):
@@ -19,7 +19,10 @@ def train(**kwargs):
     vis = Visualizer(opt.env)
 
     # step 1: configure model
-    model = densenet169(pretrained=True)
+    # model = densenet169(pretrained=True)
+    model = CustomDenseNet169(num_classes=2)
+    if opt.load_model_path:
+        model.load(opt.load_model_path)
     if opt.use_gpu:
         model.cuda()
 

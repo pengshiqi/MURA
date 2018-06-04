@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import torch as t
 from PIL import Image
 from torchvision import transforms as T
 
@@ -70,8 +71,10 @@ class MURA_Dataset(object):
 
         data = Image.open(img_path)
         # 因为 T.ToTensor() 的结果是3 channel的，所以取1channel然后unsqueeze(0)
-        data = self.transforms(data)[0].unsqueeze(0)
-        # data = self.transforms(data)
+        # data = self.transforms(data)[0].unsqueeze(0)
+        data = t.cat([self.transforms(data)[0].unsqueeze(0),
+                      self.transforms(data)[0].unsqueeze(0),
+                      self.transforms(data)[0].unsqueeze(0)], 0)  # 复制成三通道
 
         return data, label
 
