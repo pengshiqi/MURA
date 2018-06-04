@@ -9,13 +9,11 @@ class Config(object):
     data_root = '/DATA4_DB3/data/public/'
 
     # train_labeled_studies 和 test_labeled_studies 不需要，根据folder的名字来判断label
-    train_image_paths = '/DATA4_DB3/data/public/MURA-v1.1/train_image_paths.csv'
+    train_image_paths = '/DATA4_DB3/data/public/MURA-v1.1/train_image_paths.csv'   # 训练集存放路径
     # train_labeled_studies = '/DATA4_DB3/data/public/MURA-v1.1/train_labeled_studies.csv'
-    test_image_paths = '/DATA4_DB3/data/public/MURA-v1.1/test_image_paths.csv'
-    # test_labeled_studies = '/DATA4_DB3/data/public/MURA-v1.1/test_labeled_studies.csv'
+    test_image_paths = '/DATA4_DB3/data/public/MURA-v1.1/valid_image_paths.csv'    # 测试集存放路径
+    # test_labeled_studies = '/DATA4_DB3/data/public/MURA-v1.1/valid_labeled_studies.csv'
 
-    # train_data_root = '/DATA4_DB3/data/public/MURA-v1.1/train'      # 训练集存放路径
-    # test_data_root = '/DATA4_DB3/data/public/MURA-v1.1/valid'       # 测试集存放路径
     load_model_path = None                                          # 加载预训练的模型的路径，为None代表不加载
 
     batch_size = 32                                                 # batch size
@@ -24,7 +22,6 @@ class Config(object):
     print_freq = 20                                                 # print info every N batch
 
     debug_file = 'tmp/debug'                                        # if os.path.exists(debug_file): enter ipdb
-    result_file = 'result.csv'
 
     max_epoch = 10
     lr = 0.001                                                      # initial learning rate

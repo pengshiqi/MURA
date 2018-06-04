@@ -14,6 +14,10 @@ Description:
 
 * Validation data: 3197 images, 1199 cases
 
+Images in training set are grey-scale images, i.e., there is only one channel.
+
+The sizes of these images are various. Minimum width is 89, and minimum height is 132.
+
 
 ## References
 

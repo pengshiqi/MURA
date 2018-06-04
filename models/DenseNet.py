@@ -57,16 +57,18 @@ def densenet169(pretrained=False, **kwargs):
         # has keys 'norm.1', 'relu.1', 'conv.1', 'norm.2', 'relu.2', 'conv.2'.
         # They are also in the checkpoints in model_urls. This pattern is used
         # to find such keys.
-        pattern = re.compile(
-            r'^(.*denselayer\d+\.(?:norm|relu|conv))\.((?:[12])\.(?:weight|bias|running_mean|running_var))$')
-        state_dict = model_zoo.load_url(model_urls['densenet169'])
-        for key in list(state_dict.keys()):
-            res = pattern.match(key)
-            if res:
-                new_key = res.group(1) + res.group(2)
-                state_dict[new_key] = state_dict[key]
-                del state_dict[key]
-        model.load_state_dict(state_dict)
+        # pattern = re.compile(
+        #     r'^(.*denselayer\d+\.(?:norm|relu|conv))\.((?:[12])\.(?:weight|bias|running_mean|running_var))$')
+        # state_dict = model_zoo.load_url(model_urls['densenet169'])
+        # for key in list(state_dict.keys()):
+        #     res = pattern.match(key)
+        #     if res:
+        #         new_key = res.group(1) + res.group(2)
+        #         state_dict[new_key] = state_dict[key]
+        #         del state_dict[key]
+        # model.load_state_dict(state_dict)
+        model.load_state_dict(torch.load('/DB/rhome/sqpeng/PycharmProjects/MURA/models/densenet169-b2777c0a.pth'))
+
     return model
 
 
@@ -207,12 +209,12 @@ class DenseNet(nn.Module):
         # Official init from torch repo.
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight)
+                nn.init.kaiming_normal(m.weight)
             elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+                nn.init.constant(m.weight, 1)
+                nn.init.constant(m.bias, 0)
             elif isinstance(m, nn.Linear):
-                nn.init.constant_(m.bias, 0)
+                nn.init.constant(m.bias, 0)
 
     def forward(self, x):
         features = self.features(x)

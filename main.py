@@ -11,6 +11,7 @@ from tqdm import tqdm
 from config import opt
 from utils import Visualizer
 from dataset import MURA_Dataset
+# from models import densenet169
 
 
 def train(**kwargs):
