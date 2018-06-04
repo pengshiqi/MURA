@@ -12,8 +12,8 @@ IMAGENET_STD = [0.229, 0.224, 0.225]
 # >>> x = t.cat(l, 0)
 # >>> x.mean()
 # >>> x.std()
-MURA_MEAN = [0.22588661454502146, 0.22588661454502146, 0.22588661454502146]
-MURA_STD = [0.17956269377916526, 0.17956269377916526, 0.17956269377916526]
+MURA_MEAN = [0.22588661454502146]
+MURA_STD = [0.17956269377916526]
 
 
 class MURA_Dataset(object):
@@ -70,8 +70,8 @@ class MURA_Dataset(object):
 
         data = Image.open(img_path)
         # 因为 T.ToTensor() 的结果是3 channel的，所以取1channel然后unsqueeze(0)
-        # data = self.transforms(data)[0].unsqueeze(0)
-        data = self.transforms(data)
+        data = self.transforms(data)[0].unsqueeze(0)
+        # data = self.transforms(data)
 
         return data, label
 
