@@ -6,4 +6,5 @@ copy.list
 result.csv
 good.list
 report/
+.git_gitlab/
 

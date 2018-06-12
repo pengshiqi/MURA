@@ -28,6 +28,7 @@ def train(**kwargs):
         model.cuda()
 
     model.train()
+
     # step 2: data
     train_data = MURA_Dataset(opt.data_root, opt.train_image_paths, train=True)
     # val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, train=False)
@@ -102,7 +103,6 @@ def train(**kwargs):
             epoch=epoch, loss=loss_meter.value()[0], val_loss=val_loss, val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()),
             lr=lr))
 
-
         # update learning rate
         # if loss_meter.value()[0] > previous_loss:
         if val_loss > previous_loss:
@@ -138,7 +138,6 @@ def val(model, dataloader):
         loss = criterion(score, target)
         loss_meter.add(loss.data[0])
 
-
     model.train()
     cm_value = confusion_matrix.value()
     accuracy = 100. * (cm_value[0][0] + cm_value[1][1]) / (cm_value.sum())
@@ -158,6 +157,7 @@ def test(**kwargs):
         model.cuda()
 
     model.eval()
+
     # data
     test_data = MURA_Dataset(opt.data_root, opt.test_image_paths)
     test_dataloader = DataLoader(test_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
