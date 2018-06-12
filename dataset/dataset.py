@@ -28,30 +28,25 @@ class MURA_Dataset(object):
         val set:   train = False, test = False
 
         """
-        self.test = test
 
         with open(csv_path, 'rb') as F:
             d = F.readlines()
             imgs = [root + str(x, encoding='utf-8')[:-1] for x in d]  # 所有图片的存储路径, [:-1]目的是抛弃最末尾的\n
 
-        imgs_num = len(imgs)
-
-        if self.test:
-            self.imgs = imgs
-        elif train:
-            self.imgs = imgs[:int(0.7 * imgs_num)]
-        else:
-            self.imgs = imgs[int(0.7 * imgs_num):]
+        self.imgs = imgs
 
         if transforms is None:
-            normalize = T.Normalize(mean=MURA_MEAN, std=MURA_STD)
 
             # 这里的X光图是1 channel的灰度图
             self.transforms = T.Compose([
-                T.Resize(224),  # 将输入图像的短边resize到这个int数，长边则根据对应比例调整，图像的长宽比不变。
-                T.CenterCrop(224),  # 以输入图的中心点为中心点做指定size的crop操作，切出来的图片是正方形
-                T.ToTensor(),
-                normalize
+                T.Resize(320),
+                T.RandomCrop(320),
+                T.RandomHorizontalFlip(),
+                T.RandomVerticalFlip(),
+                T.RandomRotation(30),
+                T.ToTensor(),  # ToTensor() 就会转换成3通道
+                T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),
+                T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
             ])
 
     def __getitem__(self, index):
@@ -70,11 +65,8 @@ class MURA_Dataset(object):
             raise IndexError
 
         data = Image.open(img_path)
-        # 因为 T.ToTensor() 的结果是3 channel的，所以取1channel然后unsqueeze(0)
-        # data = self.transforms(data)[0].unsqueeze(0)
-        data = t.cat([self.transforms(data)[0].unsqueeze(0),
-                      self.transforms(data)[0].unsqueeze(0),
-                      self.transforms(data)[0].unsqueeze(0)], 0)  # 复制成三通道
+
+        data = self.transforms(data)
 
         return data, label, img_path
 

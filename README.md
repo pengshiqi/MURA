@@ -5,6 +5,16 @@
 
 Path on server: /DB/rhome/sqpeng/PycharmProjects/MURA
 
+## LOGs
+
+🌀 ***2018-06-11 13:02***
+
+Accuracy=66.31%
+
+🌀 ***2018-06-12 08:09***
+
+Accuracy=71.60%
+
 ## Dataset
 
 Path: /DATA4_DB3/data/public/MURA-v1.1
@@ -19,7 +29,7 @@ Description:
 
 Images in training set are grey-scale images, i.e., there is only one channel.
 
-The sizes of these images are various. Minimum width is 89, and minimum height is 132.
+The sizes of these images are various. Minimum width is 89, and minimum height is 132. Maximum width is 512, and maximum height is 512.
 
 
 ## References

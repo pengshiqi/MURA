@@ -29,10 +29,12 @@ def train(**kwargs):
 
     # step 2: data
     train_data = MURA_Dataset(opt.data_root, opt.train_image_paths, train=True)
-    val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, train=False)
+    # val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, train=False)
+    val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, test=True)
 
     train_dataloader = DataLoader(train_data, opt.batch_size, shuffle=True, num_workers=opt.num_workers)
-    val_dataloader = DataLoader(val_data, opt.batch_size, shuffle=False, num_workers=opt.num_workers)
+    # val_dataloader = DataLoader(val_data, opt.batch_size, shuffle=False, num_workers=opt.num_workers)
+    val_dataloader = DataLoader(val_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
 
     # step 3: criterion and optimizer
     criterion = t.nn.CrossEntropyLoss()
@@ -140,7 +142,7 @@ def test(**kwargs):
     s = t.nn.Softmax()
 
     for ii, (data, label, path) in tqdm(enumerate(test_dataloader)):
-        input = t.autograd.Variable(data, volatile=True)
+        input = Variable(data, volatile=True)
         if opt.use_gpu:
             input = input.cuda()
         score = model(input)
@@ -158,10 +160,13 @@ def test(**kwargs):
     cm_value = confusion_matrix.value()
     accuracy = 100. * (cm_value[0][0] + cm_value[1][1]) / (cm_value.sum())
 
+    print('confusion matrix: ')
+    print(cm_value)
     print(f'accuracy: {accuracy}')
 
     write_csv(results, opt.result_file)
 
+    calculate_cohen_kappa()
     # return results
 
 
@@ -206,13 +211,20 @@ def calculate_cohen_kappa(threshold=0.5):
         y_pred = [1 if result_dict[key] >= threshold else 0 for key in keys]
 
         print('--------------------------------------------')
-        print(XR_type)
-        print(y_true[:20])
-        print(y_pred[:20])
+        # print(XR_type)
+        # print(y_true[:20])
+        # print(y_pred[:20])
 
         kappa_score = cohen_kappa_score(y_true, y_pred)
 
         print(XR_type, kappa_score)
+
+        # 预测准确的个数
+        count = 0
+        for i in range(len(y_true)):
+            if y_pred[i] == y_true[i]:
+                count += 1
+        print(XR_type, 'Accuracy', 100.0 * count / len(y_true))
 
 
 def help(**kwargs):

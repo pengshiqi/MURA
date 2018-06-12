@@ -16,7 +16,7 @@ class Config(object):
 
     load_model_path = None                                          # 加载预训练的模型的路径，为None代表不加载
 
-    batch_size = 32                                                 # batch size
+    batch_size = 8                                                  # batch size
     use_gpu = True                                                  # user GPU or not
     num_workers = 4                                                 # how many workers for loading data
     print_freq = 20                                                 # print info every N batch
