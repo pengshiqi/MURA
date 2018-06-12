@@ -19,6 +19,26 @@ class CustomDenseNet169(BasicModule):
 
         self.features = nn.Sequential(*list(model.features.children()))
 
+        self.classifier = nn.Linear(1664, num_classes)
+
+        self.ada_pooling = nn.AdaptiveAvgPool2d((1, 1))
+
+    def forward(self, x):
+        features = self.features(x)
+        out = F.relu(features, inplace=True)
+        out = self.ada_pooling(out).view(features.size(0), -1)
+        out = self.classifier(out)
+        return out
+
+
+# create custom DenseNet
+class DenseNet169SPP(BasicModule):
+
+    def __init__(self, num_classes):
+        super(DenseNet169SPP, self).__init__()
+
+        self.features = nn.Sequential(*list(model.features.children()))
+
         # self.classifier = nn.Linear(26624, num_classes)
         self.classifier = nn.Linear(30 * 1664, num_classes)
 
