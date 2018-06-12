@@ -65,7 +65,7 @@ class MURA_Dataset(object):
                     T.Resize(320),
                     T.RandomCrop(320),
                     T.RandomHorizontalFlip(),
-                    T.RandomVerticalFlip(),
+                    # T.RandomVerticalFlip(),
                     T.RandomRotation(30),
                     T.ToTensor(),
                     T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),  # 转换成3 channel

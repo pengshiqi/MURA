@@ -47,12 +47,14 @@ def train(**kwargs):
 
     criterion = t.nn.CrossEntropyLoss(weight=weight)
     lr = opt.lr
-    optimizer = t.optim.Adam(model.parameters(), lr=lr, weight_decay=opt.weight_decay)
+    optimizer = t.optim.Adam(model.get_config_optim(opt.lr, opt.lrp), lr=lr, weight_decay=opt.weight_decay)
 
     # step 4: meters
     loss_meter = meter.AverageValueMeter()
     confusion_matrix = meter.ConfusionMeter(2)
     previous_loss = 1e100
+    previous_acc = 1e-5
+    stop_counter = 0
 
     # step 5: train
     s = t.nn.Softmax()
@@ -89,8 +91,6 @@ def train(**kwargs):
                     import ipdb
                     ipdb.set_trace()
 
-        model.save(model.model_name + "&" + str(opt) + "&" + str(epoch) + ".pth")
-
         # validate and visualize
         val_cm, val_accuracy, val_loss = val(model, val_dataloader)
 
@@ -103,6 +103,11 @@ def train(**kwargs):
             epoch=epoch, loss=loss_meter.value()[0], val_loss=val_loss, val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()),
             lr=lr))
 
+        if val_accuracy > previous_acc:
+            model.save(model.model_name + "&" + str(opt) + "&" + str(epoch) + ".pth")
+            stop_counter = 0
+        else:
+            stop_counter += 1
         # update learning rate
         # if loss_meter.value()[0] > previous_loss:
         if val_loss > previous_loss:
@@ -112,6 +117,10 @@ def train(**kwargs):
                 param_group['lr'] = lr
 
         previous_loss = val_loss
+
+        if stop_counter >= opt.early_stop:
+            print("Hit early stop threshold, epoch", epoch)
+            break
 
 
 def val(model, dataloader):
@@ -228,6 +237,8 @@ def calculate_cohen_kappa(threshold=0.5):
 
     XR_type_list = ['XR_ELBOW', 'XR_FINGER', 'XR_FOREARM', 'XR_HAND', 'XR_HUMERUS', 'XR_SHOULDER', 'XR_WRIST']
 
+    XR_acc_list = []
+    XR_kappa_list = []
     for XR_type in XR_type_list:
 
         # 提取出 XR_type 下的所有folder路径，即 result_dict 中的key
@@ -251,6 +262,12 @@ def calculate_cohen_kappa(threshold=0.5):
             if y_pred[i] == y_true[i]:
                 count += 1
         print(XR_type, 'Accuracy', 100.0 * count / len(y_true))
+        XR_acc_list.append(100.0 * count / len(y_true))
+        XR_kappa_list.append(kappa_score)
+
+    print('--------------------------------------------')
+    print("Overall Acc:", sum(XR_acc_list)/7)
+    print("Overall kappa:", sum(XR_kappa_list)/7)
 
 
 def help(**kwargs):

@@ -30,6 +30,11 @@ class DenseNet169(BasicModule):
         out = self.classifier(out)
         return out
 
+    def get_config_optim(self, lr, lrp):
+        return [{'params': self.features.parameters(), 'lr': lr * lrp},
+                {'params': self.ada_pooling.parameters()},
+                {'params': self.classifier.parameters()}]
+
 
 # create custom DenseNet
 class CustomDenseNet169(BasicModule):
@@ -60,4 +65,12 @@ class CustomDenseNet169(BasicModule):
         # print(out.size())
         out = self.classifier(out)
         return out
+
+    def get_config_optim(self, lr, lrp):
+        return [{'params': self.features.parameters(), 'lr': lr * lrp},
+                {'params': self.ada_pooling1.parameters()},
+                {'params': self.ada_pooling2.parameters()},
+                {'params': self.ada_pooling3.parameters()},
+                {'params': self.ada_pooling4.parameters()},
+                {'params': self.classifier.parameters()}]
 

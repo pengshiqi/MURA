@@ -26,8 +26,10 @@ class Config(object):
 
     max_epoch = 20
     lr = 0.0001                                                      # initial learning rate
+    lrp = 0.1
     lr_decay = 0.3                                                  # when val_loss increase, lr = lr*lr_decay
     weight_decay = 1e-4                                             # 损失函数
+    early_stop = 5
 
     def parse(self, kwargs):
         """
