@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import torch
+import torch as t
 from torch import nn
 from torch.nn import functional as F
 from torchvision import models
@@ -35,7 +35,8 @@ class CustomDenseNet169(BasicModule):
         out2 = self.ada_pooling2(out).view(features.size(0), -1)
         out3 = self.ada_pooling3(out).view(features.size(0), -1)
         out4 = self.ada_pooling4(out).view(features.size(0), -1)
-        out = torch.cat([out1, out2, out3, out4], 1)
+        out = t.cat([out1, out2, out3, out4], 1)
+
         # print(out.size())
         out = self.classifier(out)
         return out

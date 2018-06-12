@@ -66,9 +66,8 @@ class MURA_Dataset(object):
                 T.RandomHorizontalFlip(),
                 T.RandomVerticalFlip(),
                 T.RandomRotation(30),
-                T.ToTensor(),  # ToTensor() 就会转换成3通道
-                T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),
-                Rescale(rescale_fg),
+                T.ToTensor(),
+                T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),  # 转换成3 channel
                 T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
             ])
 

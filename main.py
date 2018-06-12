@@ -40,13 +40,13 @@ def train(**kwargs):
     # step 3: criterion and optimizer
     A = 21935
     N = 14873
-    weight = t.Tensor([A/(A+N), N/(A+N)])
+    weight = t.Tensor([A / (A + N), N / (A + N)])
     if opt.use_gpu:
         weight = weight.cuda()
+
     criterion = t.nn.CrossEntropyLoss(weight=weight)
     lr = opt.lr
     optimizer = t.optim.Adam(model.parameters(), lr=lr, weight_decay=opt.weight_decay)
-
 
     # step 4: meters
     loss_meter = meter.AverageValueMeter()
@@ -138,6 +138,7 @@ def val(model, dataloader):
         loss = criterion(score, target)
         loss_meter.add(loss.data[0])
 
+
     model.train()
     cm_value = confusion_matrix.value()
     accuracy = 100. * (cm_value[0][0] + cm_value[1][1]) / (cm_value.sum())
@@ -158,7 +159,7 @@ def test(**kwargs):
 
     model.eval()
     # data
-    test_data = MURA_Dataset(opt.data_root, opt.test_image_paths, test=True)
+    test_data = MURA_Dataset(opt.data_root, opt.test_image_paths)
     test_dataloader = DataLoader(test_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
 
     results = []
