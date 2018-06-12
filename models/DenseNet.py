@@ -12,10 +12,10 @@ model = models.densenet169(pretrained=True)
 
 
 # create custom DenseNet
-class CustomDenseNet169(BasicModule):
+class DenseNet169(BasicModule):
 
     def __init__(self, num_classes):
-        super(CustomDenseNet169, self).__init__()
+        super(DenseNet169, self).__init__()
 
         self.features = nn.Sequential(*list(model.features.children()))
 
@@ -32,10 +32,10 @@ class CustomDenseNet169(BasicModule):
 
 
 # create custom DenseNet
-class DenseNet169SPP(BasicModule):
+class CustomDenseNet169(BasicModule):
 
     def __init__(self, num_classes):
-        super(DenseNet169SPP, self).__init__()
+        super(CustomDenseNet169, self).__init__()
 
         self.features = nn.Sequential(*list(model.features.children()))
 
