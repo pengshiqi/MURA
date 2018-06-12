@@ -92,18 +92,12 @@ def train(**kwargs):
                     import ipdb
                     ipdb.set_trace()
 
-<<<<<<< HEAD
-=======
         if not os.path.exists(os.path.join('checkpoints', model.model_name)):
             os.mkdir(os.path.join('checkpoints', model.model_name))
         prefix = time.strftime('%m%d%H%M')
         if not os.path.exists(os.path.join('checkpoints', model.model_name, prefix)):
             os.mkdir(os.path.join('checkpoints', model.model_name, prefix))
-
-        ck_name = str(opt) + "&" + str(epoch) + ".pth"
-        model.save(os.path.join('checkpoints', model.model_name, prefix, ck_name))
-
->>>>>>> 19d69083e1738b0b6bf678a303bdbc03242e98ea
+        
         # validate and visualize
         val_cm, val_accuracy, val_loss = val(model, val_dataloader)
 
@@ -117,7 +111,9 @@ def train(**kwargs):
             lr=lr))
 
         if val_accuracy > previous_acc:
-            model.save(model.model_name + "&" + str(opt) + "&" + str(epoch) + ".pth")
+            ck_name = str(opt) + "&" + str(epoch) + ".pth"
+            model.save(os.path.join('checkpoints', model.model_name, prefix, ck_name))
+
             stop_counter = 0
         else:
             stop_counter += 1
@@ -172,8 +168,8 @@ def test(**kwargs):
     opt.parse(kwargs)
 
     # configure model
-    # model = DenseNet169(num_classes=2)
-    model = CustomDenseNet169(num_classes=2)
+    model = DenseNet169(num_classes=2)
+    # model = CustomDenseNet169(num_classes=2)
     if opt.load_model_path:
         model.load(opt.load_model_path)
     if opt.use_gpu:
