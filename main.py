@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from torchnet import meter
 from tqdm import tqdm
 from sklearn.metrics import cohen_kappa_score#, confusion_matrix
+import time
 
 from config import opt
 from utils import Visualizer
@@ -89,7 +90,14 @@ def train(**kwargs):
                     import ipdb
                     ipdb.set_trace()
 
-        model.save("checkpoints/" + model.model_name + "&" + str(opt) + "&" + str(epoch) + ".pth")
+        if not os.path.exists(os.path.join('checkpoints', model.model_name)):
+            os.mkdir(os.path.join('checkpoints', model.model_name))
+        prefix = time.strftime('%m%d%H%M')
+        if not os.path.exists(os.path.join('checkpoints', model.model_name, prefix)):
+            os.mkdir(os.path.join('checkpoints', model.model_name, prefix))
+
+        ck_name = str(opt) + "&" + str(epoch) + ".pth"
+        model.save(os.path.join('checkpoints', model.model_name, prefix, ck_name))
 
         # validate and visualize
         val_cm, val_accuracy, val_loss = val(model, val_dataloader)
