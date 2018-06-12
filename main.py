@@ -89,7 +89,7 @@ def train(**kwargs):
                     import ipdb
                     ipdb.set_trace()
 
-        model.save()
+        model.save(str(opt) + "&" + str(epoch))
 
         # validate and visualize
         val_cm, val_accuracy, val_loss = val(model, val_dataloader)
