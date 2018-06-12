@@ -68,7 +68,8 @@ class MURA_Dataset(object):
                 T.RandomRotation(30),
                 T.ToTensor(),
                 T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),  # 转换成3 channel
-                T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+                # T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+                T.Normalize(mean=MURA_MEAN, std=MURA_STD),
             ])
 
     def __getitem__(self, index):
