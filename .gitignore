@@ -1,0 +1,7 @@
+.idea/
+*.pyc
+.git_github/
+checkpoints/*
+copy.list
+result.csv
+good.list
