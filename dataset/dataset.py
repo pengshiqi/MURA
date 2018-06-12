@@ -19,14 +19,9 @@ MURA_STD = [0.17956269377916526]
 
 class MURA_Dataset(object):
 
-    def __init__(self, root, csv_path, transforms=None, train=True, test=False):
+    def __init__(self, root, csv_path, transforms=None):
         """
         主要目标： 获取所有图片的地址，并根据训练，验证，测试划分数据
-
-        test set:  train = x,     test = True
-        train set: train = True,  test = False
-        val set:   train = False, test = False
-
         """
 
         with open(csv_path, 'rb') as F:
@@ -44,8 +39,8 @@ class MURA_Dataset(object):
                 T.RandomHorizontalFlip(),
                 T.RandomVerticalFlip(),
                 T.RandomRotation(30),
-                T.ToTensor(),  # ToTensor() 就会转换成3通道
-                T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),
+                T.ToTensor(),
+                T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),  # 转换成3 channel
                 T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
             ])
 

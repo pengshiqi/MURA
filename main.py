@@ -28,16 +28,22 @@ def train(**kwargs):
         model.cuda()
 
     # step 2: data
-    train_data = MURA_Dataset(opt.data_root, opt.train_image_paths, train=True)
+    train_data = MURA_Dataset(opt.data_root, opt.train_image_paths)
     # val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, train=False)
-    val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, test=True)
+    val_data = MURA_Dataset(opt.data_root, opt.test_image_paths)
 
     train_dataloader = DataLoader(train_data, opt.batch_size, shuffle=True, num_workers=opt.num_workers)
     # val_dataloader = DataLoader(val_data, opt.batch_size, shuffle=False, num_workers=opt.num_workers)
     val_dataloader = DataLoader(val_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
 
     # step 3: criterion and optimizer
-    criterion = t.nn.CrossEntropyLoss()
+    A = 21935
+    N = 14873
+    weight = t.Tensor([A / (A + N), N / (A + N)])
+    if opt.use_gpu:
+        weight = weight.cuda()
+
+    criterion = t.nn.CrossEntropyLoss(weight=weight)
     lr = opt.lr
     optimizer = t.optim.Adam(model.parameters(), lr=lr, weight_decay=opt.weight_decay)
 
@@ -134,7 +140,7 @@ def test(**kwargs):
         model.cuda()
 
     # data
-    test_data = MURA_Dataset(opt.data_root, opt.test_image_paths, test=True)
+    test_data = MURA_Dataset(opt.data_root, opt.test_image_paths)
     test_dataloader = DataLoader(test_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
 
     results = []
@@ -208,7 +214,7 @@ def calculate_cohen_kappa(threshold=0.5):
         keys = [k for k, v in result_dict.items() if k.split('/')[6] == XR_type]
 
         y_true = [1 if key.split('_')[-1] == 'positive' else 0 for key in keys]
-        y_pred = [1 if result_dict[key] >= threshold else 0 for key in keys]
+        y_pred = [0 if result_dict[key] >= threshold else 1 for key in keys]
 
         print('--------------------------------------------')
         # print(XR_type)
