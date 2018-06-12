@@ -27,6 +27,8 @@ def train(**kwargs):
     if opt.use_gpu:
         model.cuda()
 
+    model.train()
+
     # step 2: data
     train_data = MURA_Dataset(opt.data_root, opt.train_image_paths)
     # val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, train=False)
@@ -138,6 +140,8 @@ def test(**kwargs):
         model.load(opt.load_model_path)
     if opt.use_gpu:
         model.cuda()
+
+    model.eval()
 
     # data
     test_data = MURA_Dataset(opt.data_root, opt.test_image_paths)
