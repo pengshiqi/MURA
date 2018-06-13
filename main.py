@@ -56,6 +56,11 @@ def train(**kwargs):
     previous_loss = 1e100
     previous_acc = 1e-5
     stop_counter = 0
+    if not os.path.exists(os.path.join('checkpoints', model.model_name)):
+        os.mkdir(os.path.join('checkpoints', model.model_name))
+    prefix = time.strftime('%m%d%H%M')
+    if not os.path.exists(os.path.join('checkpoints', model.model_name, prefix)):
+        os.mkdir(os.path.join('checkpoints', model.model_name, prefix))
 
     # step 5: train
     s = t.nn.Softmax()
@@ -92,12 +97,6 @@ def train(**kwargs):
                     import ipdb
                     ipdb.set_trace()
 
-        if not os.path.exists(os.path.join('checkpoints', model.model_name)):
-            os.mkdir(os.path.join('checkpoints', model.model_name))
-        prefix = time.strftime('%m%d%H%M')
-        if not os.path.exists(os.path.join('checkpoints', model.model_name, prefix)):
-            os.mkdir(os.path.join('checkpoints', model.model_name, prefix))
-        
         # validate and visualize
         val_cm, val_accuracy, val_loss = val(model, val_dataloader)
 
