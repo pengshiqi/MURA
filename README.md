@@ -15,6 +15,10 @@ Accuracy=66.31%
 
 Accuracy=71.60%
 
+🌀 ***2018-06-13 01:45***
+
+Accuracy=83.95%
+
 ## Dataset
 
 Path: /DATA4_DB3/data/public/MURA-v1.1
