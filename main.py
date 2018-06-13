@@ -56,6 +56,13 @@ def train(**kwargs):
     previous_loss = 1e100
 
     # step 5: train
+
+    if not os.path.exists(os.path.join('checkpoints', model.model_name)):
+        os.mkdir(os.path.join('checkpoints', model.model_name))
+    prefix = time.strftime('%m%d%H%M')
+    if not os.path.exists(os.path.join('checkpoints', model.model_name, prefix)):
+        os.mkdir(os.path.join('checkpoints', model.model_name, prefix))
+
     s = t.nn.Softmax()
     for epoch in range(opt.max_epoch):
 
@@ -89,13 +96,6 @@ def train(**kwargs):
                 if os.path.exists(opt.debug_file):
                     import ipdb
                     ipdb.set_trace()
-
-        if not os.path.exists(os.path.join('checkpoints', model.model_name)):
-            os.mkdir(os.path.join('checkpoints', model.model_name))
-        prefix = time.strftime('%m%d%H%M')
-        if not os.path.exists(os.path.join('checkpoints', model.model_name, prefix)):
-            os.mkdir(os.path.join('checkpoints', model.model_name, prefix))
-
         ck_name = str(opt) + "&" + str(epoch) + ".pth"
         model.save(os.path.join('checkpoints', model.model_name, prefix, ck_name))
 
