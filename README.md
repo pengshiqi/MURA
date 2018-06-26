@@ -31,6 +31,32 @@ Description:
 
 * Validation data: 3197 images, 1199 cases
 
+* Training Data Distribution
+
+|  body parts  | positive | negative | total  |
+| :----------: | :------: | :------: | :---:  |
+| ELBOW        |  2006    |  2925    |  4931  |
+| FINGER       |  1968    |  3138    |  5106  |
+| FOREARM      |  661     |  1164    |  1825  |
+| HAND         |  1484    |  4059    |  5543  |
+| HUMERUS      |  599     |  673     |  1272  |
+| SHOULDER     |  4168    |  4211    |  8379  |
+| WRIST        |  3987    |  5765    |  9752  |
+| ALL          |  14873   |  21935   |  36808 |
+
+* Test Data Distribution
+
+|  body parts  | positive | negative | total  |
+| :----------: | :------: | :------: | :---:  |
+| ELBOW        |  230     |  235     |  465   |
+| FINGER       |  247     |  214     |  461   |
+| FOREARM      |  151     |  150     |  301   |
+| HAND         |  189     |  271     |  460   |
+| HUMERUS      |  140     |  148     |  288   |
+| SHOULDER     |  278     |  285     |  563   |
+| WRIST        |  295     |  364     |  659   |
+| ALL          |  1530    |  1667    |  3197  |
+
 Images in training set are grey-scale images, i.e., there is only one channel.
 
 The sizes of these images are various. Minimum width is 89, and minimum height is 132. Maximum width is 512, and maximum height is 512.
