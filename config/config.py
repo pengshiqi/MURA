@@ -9,12 +9,13 @@ class Config(object):
     data_root = '/DATA4_DB3/data/public/'
 
     # train_labeled_studies 和 test_labeled_studies 不需要，根据folder的名字来判断label
-    train_image_paths = '/DATA4_DB3/data/public/MURA-v1.1/train_image_paths.csv'   # 训练集存放路径
+    train_image_paths = data_root + 'MURA-v1.1/train_image_paths.csv'   # 训练集存放路径
     # train_labeled_studies = '/DATA4_DB3/data/public/MURA-v1.1/train_labeled_studies.csv'
-    test_image_paths = '/DATA4_DB3/data/public/MURA-v1.1/valid_image_paths.csv'    # 测试集存放路径
+    test_image_paths = data_root + 'MURA-v1.1/valid_image_paths.csv'    # 测试集存放路径
     # test_labeled_studies = '/DATA4_DB3/data/public/MURA-v1.1/valid_labeled_studies.csv'
+    output_csv_path = 'study_results.csv'
 
-    load_model_path = None                                          # 加载预训练的模型的路径，为None代表不加载
+    load_model_path = 'checkpoints/CustomDenseNet169_0613_14:42:38.pth'                                          # 加载预训练的模型的路径，为None代表不加载
 
     batch_size = 8                                                  # batch size
     use_gpu = True                                                  # user GPU or not
@@ -25,7 +26,7 @@ class Config(object):
     result_file = 'result.csv'
 
     max_epoch = 20
-    lr = 0.001                                                      # initial learning rate
+    lr = 0.0001                                                      # initial learning rate
     lr_decay = 0.5                                                  # when val_loss increase, lr = lr*lr_decay
     weight_decay = 1e-5                                             # 损失函数
 

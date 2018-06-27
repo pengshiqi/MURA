@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import csv
 import torch as t
 import numpy as np
 from torch.autograd import Variable
@@ -82,7 +83,7 @@ def train(**kwargs):
 
             if ii % opt.print_freq == opt.print_freq - 1:
                 vis.plot('loss', loss_meter.value()[0])
-                print('loss', loss_meter.value()[0])
+                # print('loss', loss_meter.value()[0])
 
                 # debug
                 if os.path.exists(opt.debug_file):
@@ -95,7 +96,7 @@ def train(**kwargs):
         val_cm, val_accuracy, val_loss = val(model, val_dataloader)
 
         vis.plot('val_accuracy', val_accuracy)
-        print('val_accuracy', val_accuracy)
+        # print('val_accuracy', val_accuracy)
         vis.log("epoch:{epoch},lr:{lr},loss:{loss},train_cm:{train_cm},val_cm:{val_cm}".format(
             epoch=epoch, loss=loss_meter.value()[0], val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()),
             lr=lr))
@@ -196,7 +197,6 @@ def test(**kwargs):
 
 
 def write_csv(results, file_name):
-    import csv
     with open(file_name, 'w') as f:
         writer = csv.writer(f)
         writer.writerow(['image', 'probability'])
@@ -225,6 +225,14 @@ def calculate_cohen_kappa(threshold=0.5):
         # visualize
         # print(k, result_dict[k])
 
+    # 写入每个study的诊断csv
+    with open(opt.output_csv_path, 'w') as F:
+        writer = csv.writer(F)
+        for k, v in result_dict.items():
+            path = k[len(opt.data_root):] + '/'
+            value = 0 if v >= threshold else 1
+            writer.writerow([path, value])
+
     XR_type_list = ['XR_ELBOW', 'XR_FINGER', 'XR_FOREARM', 'XR_HAND', 'XR_HUMERUS', 'XR_SHOULDER', 'XR_WRIST']
 
     for XR_type in XR_type_list:
@@ -245,10 +253,11 @@ def calculate_cohen_kappa(threshold=0.5):
         print(XR_type, kappa_score)
 
         # 预测准确的个数
-        count = 0
-        for i in range(len(y_true)):
-            if y_pred[i] == y_true[i]:
-                count += 1
+        # count = 0
+        # for i in range(len(y_true)):
+        #     if y_pred[i] == y_true[i]:
+        #         count += 1
+        count = sum([1 if y_pred[i] == y_true[i] else 0 for i in range(len(y_true))])
         print(XR_type, 'Accuracy', 100.0 * count / len(y_true))
 
 
@@ -272,6 +281,7 @@ def help(**kwargs):
 
 
 if __name__ == '__main__':
-    import fire
+    # import fire
 
-    fire.Fire()
+    # fire.Fire()
+    test()

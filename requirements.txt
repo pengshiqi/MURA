@@ -4,3 +4,4 @@ torchvision
 visdom
 tqdm
 ipdb
+sklearn
