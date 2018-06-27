@@ -34,7 +34,8 @@ class Rescale():
         def totensor(in_list):
             return t.Tensor(np.asarray(in_list).reshape(-1, 1, 1))
 
-        return totensor(IMAGENET_STD) / totensor(MURA_STD) * (x - totensor(MURA_MEAN)) + totensor(IMAGENET_MEAN)
+        return totensor(IMAGENET_STD) / totensor(MURA_STD) \
+           * (x - totensor(MURA_MEAN)) + totensor(IMAGENET_MEAN)
 
 
 class MURA_Dataset(object):
@@ -105,71 +106,15 @@ class MURA_Dataset(object):
         return len(self.imgs)
 
 
-class MURAClass_Dataset(object):
-
-    def __init__(self, root, csv_path, part, transforms=None, train=True, test=False, rescale_fg=False):
-        with open(csv_path, 'rb') as F:
-            d = F.readlines()
-            imgs = [root + str(x, encoding='utf-8')[:-1] for x in d if str(x, encoding='utf-8')[:-1].split('/')[2]==part]
-
-        self.imgs = imgs
-        self.rescale_fg = rescale_fg
-
-        if transforms is None:
-
-            if train:
-                # 这里的X光图是1 channel的灰度图
-                self.transforms = T.Compose([
-                    T.Resize(320),
-                    T.RandomCrop(320),
-                    T.RandomHorizontalFlip(),
-                    T.RandomVerticalFlip(),
-                    T.RandomRotation(30),
-                    T.ToTensor(),
-                    T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),  # 转换成3 channel
-                    T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-                ])
-            if test:
-                # 这里的X光图是1 channel的灰度图
-                self.transforms = T.Compose([
-                    T.Resize(320),
-                    T.CenterCrop(320),
-                    T.ToTensor(),
-                    T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),  # 转换成3 channel
-                    T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-                ])
-
-    def __getitem__(self, index):
-        """
-        一次返回一张图片的数据：data, label, path
-        """
-
-        img_path = self.imgs[index]
-
-        label_str = img_path.split('_')[-1].split('/')[0]
-        if label_str == 'positive':
-            label = 1
-        elif label_str == 'negative':
-            label = 0
-        else:
-            raise IndexError
-
-        data = Image.open(img_path)
-
-        data = self.transforms(data)
-
-        return data, label, img_path
-
-    def __len__(self):
-        return len(self.imgs)
-
-
 if __name__ == "__main__":
     from config.config import opt
     from tqdm import tqdm
     train_data = MURA_Dataset(opt.data_root, opt.train_image_paths, train=True)
-    l = [x[0] for x in tqdm(train_data)]
-    x = t.cat(l, 0)
-    print(x.mean())
-    print(x.std())
+    for x in train_data:
+        print(x[0].shape)
+        break
+    # l = [x[0] for x in tqdm(train_data)]
+    # x = t.cat(l, 0)
+    # print(x.mean())
+    # print(x.std())
 

@@ -12,7 +12,7 @@ import time
 
 from config import opt
 from utils import Visualizer
-from dataset import MURA_Dataset
+from dataset import MURA_Dataset, MURAClass_Dataset
 from models import DenseNet169, CustomDenseNet169
 
 
@@ -23,6 +23,7 @@ def train(**kwargs):
     # step 1: configure model
     # model = densenet169(pretrained=True)
     model = DenseNet169(num_classes=2)
+
     if opt.load_model_path:
         model.load(opt.load_model_path)
     if opt.use_gpu:
@@ -32,8 +33,11 @@ def train(**kwargs):
 
     # step 2: data
     train_data = MURA_Dataset(opt.data_root, opt.train_image_paths, train=True)
-    # val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, train=False)
     val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, test=True)
+
+    # train_data = MURAClass_Dataset(opt.data_root, opt.train_image_paths, 'XR_FINGER', train=True)
+    # val_data = MURAClass_Dataset(opt.data_root, opt.test_image_paths, 'XR_FINGER', test=True)
+    # print(train_data.__len__(), val_data.__len__())
 
     train_dataloader = DataLoader(train_data, opt.batch_size, shuffle=True, num_workers=opt.num_workers)
     # val_dataloader = DataLoader(val_data, opt.batch_size, shuffle=False, num_workers=opt.num_workers)
@@ -42,6 +46,8 @@ def train(**kwargs):
     # step 3: criterion and optimizer
     A = 21935
     N = 14873
+    # A = 3138
+    # N = 1968
     weight = t.Tensor([A / (A + N), N / (A + N)])
     if opt.use_gpu:
         weight = weight.cuda()
@@ -54,6 +60,7 @@ def train(**kwargs):
     loss_meter = meter.AverageValueMeter()
     confusion_matrix = meter.ConfusionMeter(2)
     previous_loss = 1e100
+    previous_acc = 0
 
     # step 5: train
 
@@ -96,11 +103,15 @@ def train(**kwargs):
                 if os.path.exists(opt.debug_file):
                     import ipdb
                     ipdb.set_trace()
-        ck_name = str(opt) + "&" + str(epoch) + ".pth"
-        model.save(os.path.join('checkpoints', model.model_name, prefix, ck_name))
 
         # validate and visualize
         val_cm, val_accuracy, val_loss = val(model, val_dataloader)
+
+        if val_accuracy > previous_acc:
+            # ck_name = str(opt) + "&" + str(epoch) + ".pth"\
+            # model.save(os.path.join('checkpoints', model.model_name, prefix, ck_name))
+            ck_name = 'best_model.pth'
+            model.save(os.path.join('checkpoints', model.model_name, ck_name))
 
         vis.plot('val_accuracy', val_accuracy)
         print('val_accuracy', val_accuracy)
@@ -141,8 +152,12 @@ def val(model, dataloader):
             val_input = val_input.cuda()
             target = target.cuda()
         score = model(val_input)
+        # print('input', score.shape)
+        # print('score', score.data.squeeze().shape)
         # confusion_matrix.add(softmax(score.data.squeeze()), label.type(t.LongTensor))
-        confusion_matrix.add(s(Variable(score.data.squeeze())).data, label.type(t.LongTensor))
+
+        # confusion_matrix.add(s(Variable(score.data.squeeze())).data, label.type(t.LongTensor)) # original used
+        confusion_matrix.add(s(Variable(score.data)).data, label.type(t.LongTensor)) # use for separate body part
         loss = criterion(score, target)
         loss_meter.add(loss.data[0])
 
@@ -158,8 +173,8 @@ def test(**kwargs):
     opt.parse(kwargs)
 
     # configure model
-    # model = DenseNet169(num_classes=2)
-    model = CustomDenseNet169(num_classes=2)
+    model = DenseNet169(num_classes=2)
+    # model = CustomDenseNet169(num_classes=2)
     if opt.load_model_path:
         model.load(opt.load_model_path)
     if opt.use_gpu:

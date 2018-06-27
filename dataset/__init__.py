@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-from .dataset import MURA_Dataset
+from .dataset import MURA_Dataset, MURAClass_Dataset
