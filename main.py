@@ -167,8 +167,8 @@ def test(**kwargs):
     opt.parse(kwargs)
 
     # configure model
-    # model = DenseNet169(num_classes=2)
-    model = CustomDenseNet169(num_classes=2)
+    model = DenseNet169(num_classes=2)
+    # model = CustomDenseNet169(num_classes=2)
     if opt.load_model_path:
         model.load(opt.load_model_path)
     if opt.use_gpu:
