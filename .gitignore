@@ -1,13 +1,15 @@
 .idea/
-*.pyc
 .git_github/
+.git_gitlab/
+
+*.pyc
 checkpoints/*
-copy.list
+models/pretrained_models/densenet169-b2777c0a.pth
+
 result.csv
 good.list
+copy.list
 report/
-.git_gitlab/
-<<<<<<< HEAD
 run.md
 sync.sh
 demo.ipynb
