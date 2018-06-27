@@ -2,6 +2,7 @@
 
 import torch as t
 import time
+import re
 
 
 class BasicModule(t.nn.Module):
