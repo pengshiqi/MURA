@@ -22,7 +22,7 @@ def train(**kwargs):
 
     # step 1: configure model
     # model = densenet169(pretrained=True)
-    model = DenseNet169(num_classes=2)
+    model = CustomDenseNet169(num_classes=2)
     if opt.load_model_path:
         model.load(opt.load_model_path)
     if opt.use_gpu:
@@ -167,8 +167,8 @@ def test(**kwargs):
     opt.parse(kwargs)
 
     # configure model
-    model = DenseNet169(num_classes=2)
-    # model = CustomDenseNet169(num_classes=2)
+    # model = DenseNet169(num_classes=2)
+    model = CustomDenseNet169(num_classes=2)
     if opt.load_model_path:
         model.load(opt.load_model_path)
     if opt.use_gpu:
@@ -242,6 +242,14 @@ def calculate_cohen_kappa(threshold=0.5):
         result_dict[k] = np.mean(v)
         # visualize
         # print(k, result_dict[k])
+
+    # 写入每个study的诊断csv
+    with open(opt.output_csv_path, 'w') as F:
+        writer = csv.writer(F)
+        for k, v in result_dict.items():
+            path = k[len(opt.data_root):] + '/'
+            value = 0 if v >= threshold else 1
+            writer.writerow([path, value])
 
     XR_type_list = ['XR_ELBOW', 'XR_FINGER', 'XR_FOREARM', 'XR_HAND', 'XR_HUMERUS', 'XR_SHOULDER', 'XR_WRIST']
 
