@@ -19,6 +19,16 @@ class BasicModule(t.nn.Module):
         可加载指定路径的模型
         """
         self.load_state_dict(t.load(path))
+        pattern = re.compile(
+            r'^(.*denselayer\d+\.(?:norm|relu|conv))\.((?:[12])\.(?:weight|bias|running_mean|running_var))$')
+        # state_dict = checkpoint['state_dict']
+        for key in list(state_dict.keys()):
+            res = pattern.match(key)
+            if res:
+                new_key = res.group(1) + res.group(2)
+                state_dict[new_key] = state_dict[key]
+                del state_dict[key]
+        self.load_state_dict(state_dict)
 
     def save(self, name=None):
         """
