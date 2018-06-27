@@ -13,6 +13,26 @@ model.load_state_dict(t.load('./models/pretrained_models/densenet169-b2777c0a.pt
 
 
 # create custom DenseNet
+class DenseNet169(BasicModule):
+
+    def __init__(self, num_classes):
+        super(DenseNet169, self).__init__()
+
+        self.features = nn.Sequential(*list(model.features.children()))
+
+        self.classifier = nn.Linear(1664, num_classes)
+
+        self.ada_pooling = nn.AdaptiveAvgPool2d((1, 1))
+
+    def forward(self, x):
+        features = self.features(x)
+        out = F.relu(features, inplace=True)
+        out = self.ada_pooling(out).view(features.size(0), -1)
+        out = self.classifier(out)
+        return out
+
+
+# create custom DenseNet
 class CustomDenseNet169(BasicModule):
 
     def __init__(self, num_classes):

@@ -59,17 +59,27 @@ class MURA_Dataset(object):
 
         if transforms is None:
 
-            # 这里的X光图是1 channel的灰度图
-            self.transforms = T.Compose([
-                T.Resize(320),
-                T.RandomCrop(320),
-                T.RandomHorizontalFlip(),
-                T.RandomVerticalFlip(),
-                T.RandomRotation(30),
-                T.ToTensor(),
-                T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),  # 转换成3 channel
-                T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-            ])
+            if train:
+                # 这里的X光图是1 channel的灰度图
+                self.transforms = T.Compose([
+                    T.Resize(320),
+                    T.RandomCrop(320),
+                    T.RandomHorizontalFlip(),
+                    T.RandomVerticalFlip(),
+                    T.RandomRotation(30),
+                    T.ToTensor(),
+                    T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),  # 转换成3 channel
+                    T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+                ])
+            if test:
+                # 这里的X光图是1 channel的灰度图
+                self.transforms = T.Compose([
+                    T.Resize(320),
+                    T.CenterCrop(320),
+                    T.ToTensor(),
+                    T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),  # 转换成3 channel
+                    T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+                ])
 
     def __getitem__(self, index):
         """

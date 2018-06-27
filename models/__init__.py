@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-from .DenseNet import CustomDenseNet169
+from .DenseNet import DenseNet169, CustomDenseNet169

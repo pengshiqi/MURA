@@ -44,5 +44,14 @@ class Config(object):
             if not k.startswith('__'):
                 print(k, getattr(self, k))
 
+    def __str__(self):
+        print_dict = {
+            "lr": self.lr,
+            "lr_decay": self.lr_decay,
+            "weight_decay": self.weight_decay,
+            "batch_size": self.batch_size,
+        }
+        return "&".join(["{}:{}".format(k, v) for k, v in print_dict.items()])
+
 
 opt = Config()

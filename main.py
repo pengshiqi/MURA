@@ -9,11 +9,12 @@ from torch.utils.data import DataLoader
 from torchnet import meter
 from tqdm import tqdm
 from sklearn.metrics import cohen_kappa_score#, confusion_matrix
+import time
 
 from config import opt
 from utils import Visualizer
 from dataset import MURA_Dataset
-from models import CustomDenseNet169
+from models import DenseNet169, CustomDenseNet169
 
 
 def train(**kwargs):
@@ -22,7 +23,7 @@ def train(**kwargs):
 
     # step 1: configure model
     # model = densenet169(pretrained=True)
-    model = CustomDenseNet169(num_classes=2)
+    model = DenseNet169(num_classes=2)
     if opt.load_model_path:
         model.load(opt.load_model_path)
     if opt.use_gpu:
@@ -56,6 +57,13 @@ def train(**kwargs):
     previous_loss = 1e100
 
     # step 5: train
+
+    if not os.path.exists(os.path.join('checkpoints', model.model_name)):
+        os.mkdir(os.path.join('checkpoints', model.model_name))
+    prefix = time.strftime('%m%d%H%M')
+    if not os.path.exists(os.path.join('checkpoints', model.model_name, prefix)):
+        os.mkdir(os.path.join('checkpoints', model.model_name, prefix))
+
     s = t.nn.Softmax()
     for epoch in range(opt.max_epoch):
 
@@ -89,8 +97,8 @@ def train(**kwargs):
                 if os.path.exists(opt.debug_file):
                     import ipdb
                     ipdb.set_trace()
-
-        model.save()
+        ck_name = str(opt) + "&" + str(epoch) + ".pth"
+        model.save(os.path.join('checkpoints', model.model_name, prefix, ck_name))
 
         # validate and visualize
         val_cm, val_accuracy, val_loss = val(model, val_dataloader)
@@ -151,6 +159,7 @@ def test(**kwargs):
     opt.parse(kwargs)
 
     # configure model
+    # model = DenseNet169(num_classes=2)
     model = CustomDenseNet169(num_classes=2)
     if opt.load_model_path:
         model.load(opt.load_model_path)
@@ -160,7 +169,7 @@ def test(**kwargs):
     model.eval()
 
     # data
-    test_data = MURA_Dataset(opt.data_root, opt.test_image_paths)
+    test_data = MURA_Dataset(opt.data_root, opt.test_image_paths, test=True)
     test_dataloader = DataLoader(test_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
 
     results = []
