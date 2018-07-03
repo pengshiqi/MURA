@@ -13,11 +13,13 @@ class Config(object):
     # train_labeled_studies = '/DATA4_DB3/data/public/MURA-v1.1/train_labeled_studies.csv'
     test_image_paths = data_root + 'MURA-v1.1/valid_image_paths.csv'    # 测试集存放路径
     # test_labeled_studies = '/DATA4_DB3/data/public/MURA-v1.1/valid_labeled_studies.csv'
+
     output_csv_path = 'study_results.csv'
 
-    load_model_path = 'checkpoints/CustomDenseNet169_0613_14:42:38.pth'                                          # 加载预训练的模型的路径，为None代表不加载
+    # load_model_path = 'checkpoints/CustomDenseNet169_0613_14:42:38.pth'
+    load_model_path = 'checkpoints/Best_0702.pth'                                          # 加载预训练的模型的路径，为None代表不加载
 
-    batch_size = 8                                                  # batch size
+    batch_size = 1                                                  # batch size
     use_gpu = True                                                  # user GPU or not
     num_workers = 4                                                 # how many workers for loading data
     print_freq = 20                                                 # print info every N batch

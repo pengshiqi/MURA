@@ -2,6 +2,7 @@
 
 import torch as t
 import time
+import re
 
 
 class BasicModule(t.nn.Module):
@@ -18,7 +19,20 @@ class BasicModule(t.nn.Module):
         """
         可加载指定路径的模型
         """
+        # GPU 加载模型
         self.load_state_dict(t.load(path))
+
+        # 使用CPU加载GPU模型
+        # state_dict = t.load(path, map_location=lambda storage, loc: storage)
+        # pattern = re.compile(
+        #     r'^(.*denselayer\d+\.(?:norm|relu|conv))\.((?:[12])\.(?:weight|bias|running_mean|running_var))$')
+        # for key in list(state_dict.keys()):
+        #     res = pattern.match(key)
+        #     if res:
+        #         new_key = res.group(1) + res.group(2)
+        #         state_dict[new_key] = state_dict[key]
+        #         del state_dict[key]
+        # self.load_state_dict(state_dict)
 
     def save(self, name=None):
         """

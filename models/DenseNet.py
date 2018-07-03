@@ -9,7 +9,7 @@ from .BasicModule import BasicModule
 
 # load the original DenseNet model
 model = models.densenet169(pretrained=False)
-model.load_state_dict(t.load('./models/pretrained_models/densenet169-b2777c0a.pth'))
+# model.load_state_dict(t.load('./models/pretrained_models/densenet169-b2777c0a.pth'))
 
 
 # create custom DenseNet

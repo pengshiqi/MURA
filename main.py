@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import sys
 import csv
 import torch as t
 import numpy as np
@@ -32,12 +33,10 @@ def train(**kwargs):
     model.train()
 
     # step 2: data
-    train_data = MURA_Dataset(opt.data_root, opt.train_image_paths, train=True)
-    # val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, train=False)
-    val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, test=True)
+    train_data = MURA_Dataset(opt.data_root, opt.train_image_paths, train=True, test=False)
+    val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, train=False, test=False)
 
     train_dataloader = DataLoader(train_data, opt.batch_size, shuffle=True, num_workers=opt.num_workers)
-    # val_dataloader = DataLoader(val_data, opt.batch_size, shuffle=False, num_workers=opt.num_workers)
     val_dataloader = DataLoader(val_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
 
     # step 3: criterion and optimizer
@@ -60,7 +59,7 @@ def train(**kwargs):
 
     if not os.path.exists(os.path.join('checkpoints', model.model_name)):
         os.mkdir(os.path.join('checkpoints', model.model_name))
-    prefix = time.strftime('%m%d%H%M')
+    prefix = time.strftime('%m%d')
     if not os.path.exists(os.path.join('checkpoints', model.model_name, prefix)):
         os.mkdir(os.path.join('checkpoints', model.model_name, prefix))
 
@@ -97,8 +96,10 @@ def train(**kwargs):
                 if os.path.exists(opt.debug_file):
                     import ipdb
                     ipdb.set_trace()
+
         ck_name = str(opt) + "&" + str(epoch) + ".pth"
         model.save(os.path.join('checkpoints', model.model_name, prefix, ck_name))
+        # model.save()
 
         # validate and visualize
         val_cm, val_accuracy, val_loss = val(model, val_dataloader)
@@ -107,9 +108,6 @@ def train(**kwargs):
         # print('val_accuracy', val_accuracy)
         vis.log("epoch:{epoch},lr:{lr},loss:{loss},train_cm:{train_cm},val_cm:{val_cm}".format(
             epoch=epoch, loss=loss_meter.value()[0], val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()),
-            lr=lr))
-        print("epoch:{epoch},lr:{lr},loss:{loss},val_loss:{val_loss},train_cm:{train_cm},val_cm:{val_cm}".format(
-            epoch=epoch, loss=loss_meter.value()[0], val_loss=val_loss, val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()),
             lr=lr))
 
         # update learning rate
@@ -159,8 +157,8 @@ def test(**kwargs):
     opt.parse(kwargs)
 
     # configure model
-    # model = DenseNet169(num_classes=2)
-    model = CustomDenseNet169(num_classes=2)
+    model = DenseNet169(num_classes=2)
+    # model = CustomDenseNet169(num_classes=2)
     if opt.load_model_path:
         model.load(opt.load_model_path)
     if opt.use_gpu:
@@ -169,12 +167,12 @@ def test(**kwargs):
     model.eval()
 
     # data
-    test_data = MURA_Dataset(opt.data_root, opt.test_image_paths, test=True)
+    test_data = MURA_Dataset(opt.data_root, opt.test_image_paths, train=False, test=True)
     test_dataloader = DataLoader(test_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
 
     results = []
-    confusion_matrix = meter.ConfusionMeter(2)
-    s = t.nn.Softmax()
+    # confusion_matrix = meter.ConfusionMeter(2)
+    # s = t.nn.Softmax()
 
     for ii, (data, label, path) in tqdm(enumerate(test_dataloader)):
         input = Variable(data, volatile=True)
@@ -182,22 +180,21 @@ def test(**kwargs):
             input = input.cuda()
         score = model(input)
 
-        confusion_matrix.add(s(Variable(score.data.squeeze())).data, label.type(t.LongTensor))
+        # confusion_matrix.add(s(Variable(score.data.squeeze())).data, label.type(t.LongTensor))
 
         probability = t.nn.functional.softmax(score)[:, 0].data.tolist()
-        # label = score.max(dim = 1)[1].data.tolist()
 
         # 每一行为 图片路径 和 positive的概率
         batch_results = [(path_, probability_) for path_, probability_ in zip(path, probability)]
 
         results += batch_results
 
-    cm_value = confusion_matrix.value()
-    accuracy = 100. * (cm_value[0][0] + cm_value[1][1]) / (cm_value.sum())
+    # cm_value = confusion_matrix.value()
+    # accuracy = 100. * (cm_value[0][0] + cm_value[1][1]) / (cm_value.sum())
 
-    print('confusion matrix: ')
-    print(cm_value)
-    print(f'accuracy: {accuracy}')
+    # print('confusion matrix: ')
+    # print(cm_value)
+    # print(f'accuracy: {accuracy}')
 
     write_csv(results, opt.result_file)
 
@@ -253,19 +250,12 @@ def calculate_cohen_kappa(threshold=0.5):
         y_pred = [0 if result_dict[key] >= threshold else 1 for key in keys]
 
         print('--------------------------------------------')
-        # print(XR_type)
-        # print(y_true[:20])
-        # print(y_pred[:20])
 
         kappa_score = cohen_kappa_score(y_true, y_pred)
 
         print(XR_type, kappa_score)
 
         # 预测准确的个数
-        # count = 0
-        # for i in range(len(y_true)):
-        #     if y_pred[i] == y_true[i]:
-        #         count += 1
         count = sum([1 if y_pred[i] == y_true[i] else 0 for i in range(len(y_true))])
         print(XR_type, 'Accuracy', 100.0 * count / len(y_true))
 
@@ -273,7 +263,7 @@ def calculate_cohen_kappa(threshold=0.5):
 def help(**kwargs):
     """
         打印帮助的信息： python main.py help
-        """
+    """
 
     print("""
         usage : python main.py <function> [--args=value]
@@ -290,7 +280,12 @@ def help(**kwargs):
 
 
 if __name__ == '__main__':
+    # ------- Train --------
     # import fire
-
     # fire.Fire()
+
+    # ------- Test --------
+    opt.test_image_paths = sys.argv[1]
+    opt.output_csv_path = sys.argv[2]
     test()
+
