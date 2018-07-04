@@ -18,23 +18,23 @@ MURA_MEAN = [0.22588661454502146] * 3
 MURA_STD = [0.17956269377916526] * 3
 
 
-class Rescale():
-    def __init__(self, isrescale):
-        self.isrescale = isrescale
-
-    def __call__(self, x):
-        if self.isrescale:
-            return self.rescale(x)
-        else:
-            return x
-
-    def rescale(self, x):
-        _, h, w = x.size()
-
-        def totensor(in_list):
-            return t.Tensor(np.asarray(in_list).reshape(-1, 1, 1))
-
-        return totensor(IMAGENET_STD) / totensor(MURA_STD) * (x - totensor(MURA_MEAN)) + totensor(IMAGENET_MEAN)
+# class Rescale():
+#     def __init__(self, isrescale):
+#         self.isrescale = isrescale
+#
+#     def __call__(self, x):
+#         if self.isrescale:
+#             return self.rescale(x)
+#         else:
+#             return x
+#
+#     def rescale(self, x):
+#         _, h, w = x.size()
+#
+#         def totensor(in_list):
+#             return t.Tensor(np.asarray(in_list).reshape(-1, 1, 1))
+#
+#         return totensor(IMAGENET_STD) / totensor(MURA_STD) * (x - totensor(MURA_MEAN)) + totensor(IMAGENET_MEAN)
 
 
 class MURA_Dataset(object):

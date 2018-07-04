@@ -13,8 +13,6 @@ class Config(object):
     test_image_paths = '/DATA4_DB3/data/public/MURA-v1.1/valid_image_paths.csv'    # 测试集存放路径
     # test_labeled_studies = '/DATA4_DB3/data/public/MURA-v1.1/valid_labeled_studies.csv'
 
-    # load_model_path = '/DB/rhome/bllai/PT_MachineLearning/MURA/checkpoints/DenseNet169/lr:0.0001&lr_decay:0.5&weight_decay:1e-05&batch_size:8&19.pth'                                          # 加载预训练的模型的路径，为None代表不加载
-    # load_model_path = '/DB/rhome/bllai/PT_MachineLearning/MURA/checkpoints/DenseNet169/best_model.pth'
     # load_model_path = '/DB/rhome/bllai/PyTorchProjects/MURA/checkpoints/CustomDenseNet169/CustomDenseNet169_best_model.pth'
     load_model_path = None
 

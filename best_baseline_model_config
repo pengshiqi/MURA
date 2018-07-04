@@ -1,0 +1,51 @@
+env = 'MURA'
+
+data_root = '/DATA4_DB3/data/public/'
+train_image_paths = '/DATA4_DB3/data/public/MURA-v1.1/train_image_paths.csv'
+test_image_paths = '/DATA4_DB3/data/public/MURA-v1.1/valid_image_paths.csv'
+
+load_model_path = None
+
+batch_size = 8
+use_gpu = True
+num_workers = 4
+print_freq = 100
+
+debug_file = 'tmp/debug'
+result_file = 'result.csv'
+
+max_epoch = 20
+lr = 0.0001
+lr_pre = 0.1 * lr
+lr_decay = 0.3
+weight_decay = 1e-4
+
+confusion matrix: 
+[[1559  108]
+ [ 424 1106]]
+accuracy: 83.35939943697217
+--------------------------------------------
+XR_ELBOW 0.7468375780064092
+XR_ELBOW Accuracy 87.9746835443038
+--------------------------------------------
+XR_FINGER 0.5458779692594318
+XR_FINGER Accuracy 77.71428571428571
+--------------------------------------------
+XR_FOREARM 0.6960694698354661
+XR_FOREARM Accuracy 84.9624060150376
+--------------------------------------------
+XR_HAND 0.5254526264512462
+XR_HAND Accuracy 79.04191616766467
+--------------------------------------------
+XR_HUMERUS 0.7925356750823271
+XR_HUMERUS Accuracy 89.62962962962963
+--------------------------------------------
+XR_SHOULDER 0.6280754073916285
+XR_SHOULDER Accuracy 81.44329896907216
+--------------------------------------------
+XR_WRIST 0.7390957749686824
+XR_WRIST Accuracy 87.76371308016877
+--------------------------------------------
+Overall Acc: 84.07570473145175
+Overall kappa: 0.6677063572850273
+
