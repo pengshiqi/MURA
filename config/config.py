@@ -13,27 +13,24 @@ class Config(object):
     test_image_paths = '/DATA4_DB3/data/public/MURA-v1.1/valid_image_paths.csv'    # 测试集存放路径
     # test_labeled_studies = '/DATA4_DB3/data/public/MURA-v1.1/valid_labeled_studies.csv'
 
-    # data_root = ''
-    # train_image_paths = data_root + 'valid/train_image_paths.csv'
-    # test_image_paths = data_root + 'valid_image_paths.csv'
-    # output_csv_path = 'study_results.csv'
-
     # load_model_path = '/DB/rhome/bllai/PT_MachineLearning/MURA/checkpoints/DenseNet169/lr:0.0001&lr_decay:0.5&weight_decay:1e-05&batch_size:8&19.pth'                                          # 加载预训练的模型的路径，为None代表不加载
-    # load_model_path = 'MURA/checkpoints/CustomDenseNet169_0613_14:42:38.pth'
+    # load_model_path = '/DB/rhome/bllai/PT_MachineLearning/MURA/checkpoints/DenseNet169/best_model.pth'
+    # load_model_path = '/DB/rhome/bllai/PyTorchProjects/MURA/checkpoints/CustomDenseNet169/CustomDenseNet169_best_model.pth'
     load_model_path = None
 
     batch_size = 8                                                  # batch size
     use_gpu = True                                                  # user GPU or not
     num_workers = 4                                                 # how many workers for loading data
-    print_freq = 20                                                 # print info every N batch
+    print_freq = 100                                                 # print info every N batch
 
     debug_file = 'tmp/debug'                                        # if os.path.exists(debug_file): enter ipdb
     result_file = 'result.csv'
 
     max_epoch = 20
     lr = 0.0001                                                     # initial learning rate
+    lr_pre = 0.1 * lr                                               # learning rate of pretrained part
     lr_decay = 0.3                                                  # when val_loss increase, lr = lr*lr_decay
-    weight_decay = 0.0001                                           # 损失函数
+    weight_decay = 1e-4                                             # loss function
 
     def parse(self, kwargs):
         """
@@ -49,14 +46,14 @@ class Config(object):
             if not k.startswith('__'):
                 print(k, getattr(self, k))
 
-    # def __str__(self):
-    #     print_dict = {
-    #         "lr": self.lr,
-    #         "lr_decay": self.lr_decay,
-    #         "weight_decay": self.weight_decay,
-    #         "batch_size": self.batch_size,
-    #     }
-    #     return "&".join(["{}:{}".format(k, v) for k, v in print_dict.items()])
+    def __str__(self):
+        print_dict = {
+            "lr": self.lr,
+            "lr_decay": self.lr_decay,
+            "weight_decay": self.weight_decay,
+            "batch_size": self.batch_size,
+        }
+        return "&".join(["{}:{}".format(k, v) for k, v in print_dict.items()])
 
 
 opt = Config()

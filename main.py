@@ -22,7 +22,7 @@ def train(**kwargs):
 
     # step 1: configure model
     # model = densenet169(pretrained=True)
-    model = DenseNet169(num_classes=2)
+    model = CustomDenseNet169(num_classes=2)
 
     if opt.load_model_path:
         model.load(opt.load_model_path)
@@ -54,7 +54,8 @@ def train(**kwargs):
 
     criterion = t.nn.CrossEntropyLoss(weight=weight)
     lr = opt.lr
-    optimizer = t.optim.Adam(model.parameters(), lr=lr, weight_decay=opt.weight_decay)
+    # optimizer = t.optim.Adam(model.parameters(), lr=lr, weight_decay=opt.weight_decay)
+    optimizer = t.optim.Adam(model.get_config_optim(opt.lr, opt.lr_pre), lr=lr, weight_decay=opt.weight_decay)
 
     # step 4: meters
     loss_meter = meter.AverageValueMeter()
@@ -66,9 +67,9 @@ def train(**kwargs):
 
     if not os.path.exists(os.path.join('checkpoints', model.model_name)):
         os.mkdir(os.path.join('checkpoints', model.model_name))
-    prefix = time.strftime('%m%d%H%M')
-    if not os.path.exists(os.path.join('checkpoints', model.model_name, prefix)):
-        os.mkdir(os.path.join('checkpoints', model.model_name, prefix))
+    # prefix = time.strftime('%m%d%H%M')
+    # if not os.path.exists(os.path.join('checkpoints', model.model_name, prefix)):
+    #     os.mkdir(os.path.join('checkpoints', model.model_name, prefix))
 
     s = t.nn.Softmax()
     for epoch in range(opt.max_epoch):
@@ -110,8 +111,9 @@ def train(**kwargs):
         if val_accuracy > previous_acc:
             # ck_name = str(opt) + "&" + str(epoch) + ".pth"\
             # model.save(os.path.join('checkpoints', model.model_name, prefix, ck_name))
-            ck_name = 'best_model.pth'
+            ck_name = model.model_name + '_best_model.pth'
             model.save(os.path.join('checkpoints', model.model_name, ck_name))
+            previous_acc = val_accuracy
 
         vis.plot('val_accuracy', val_accuracy)
         print('val_accuracy', val_accuracy)
@@ -152,10 +154,6 @@ def val(model, dataloader):
             val_input = val_input.cuda()
             target = target.cuda()
         score = model(val_input)
-        # print('input', score.shape)
-        # print('score', score.data.squeeze().shape)
-        # confusion_matrix.add(softmax(score.data.squeeze()), label.type(t.LongTensor))
-
         # confusion_matrix.add(s(Variable(score.data.squeeze())).data, label.type(t.LongTensor)) # original used
         confusion_matrix.add(s(Variable(score.data)).data, label.type(t.LongTensor)) # use for separate body part
         loss = criterion(score, target)
@@ -173,8 +171,8 @@ def test(**kwargs):
     opt.parse(kwargs)
 
     # configure model
-    model = DenseNet169(num_classes=2)
-    # model = CustomDenseNet169(num_classes=2)
+    # model = DenseNet169(num_classes=2)
+    model = CustomDenseNet169(num_classes=2)
     if opt.load_model_path:
         model.load(opt.load_model_path)
     if opt.use_gpu:
@@ -251,6 +249,9 @@ def calculate_cohen_kappa(threshold=0.5):
 
     XR_type_list = ['XR_ELBOW', 'XR_FINGER', 'XR_FOREARM', 'XR_HAND', 'XR_HUMERUS', 'XR_SHOULDER', 'XR_WRIST']
 
+    XR_acc_list = []
+    XR_kappa_list = []
+
     for XR_type in XR_type_list:
 
         # 提取出 XR_type 下的所有folder路径，即 result_dict 中的key
@@ -274,6 +275,12 @@ def calculate_cohen_kappa(threshold=0.5):
             if y_pred[i] == y_true[i]:
                 count += 1
         print(XR_type, 'Accuracy', 100.0 * count / len(y_true))
+        XR_acc_list.append(100.0 * count / len(y_true))
+        XR_kappa_list.append(kappa_score)
+
+    print('--------------------------------------------')
+    print("Overall Acc:", sum(XR_acc_list) / 7)
+    print("Overall kappa:", sum(XR_kappa_list) / 7)
 
 
 def help(**kwargs):
