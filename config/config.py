@@ -1,10 +1,19 @@
 # -*- coding: utf-8 -*-
 
 import warnings
+import time
 
 
 class Config(object):
+    use_visdom = True
     env = 'MURA'                                                    # visdom 环境
+    model = 'DenseNet169'  # 使用的模型，名字必须与models/__init__.py中的名字一致
+
+    # 组合模型的 模型类型 和 路径
+    ensemble_model_types = ['DenseNet169', 'ResNet152', 'VGG16']
+    ensemble_model_paths = ['checkpoints/best_densenet169_0702.pth',
+                            'checkpoints/best_resnet152_0708.pth',
+                            'checkpoints/best_vgg16_0708.pth']
 
     data_root = '/DATA4_DB3/data/public/'
 
@@ -14,12 +23,12 @@ class Config(object):
     test_image_paths = data_root + 'MURA-v1.1/valid_image_paths.csv'    # 测试集存放路径
     # test_labeled_studies = '/DATA4_DB3/data/public/MURA-v1.1/valid_labeled_studies.csv'
 
-    output_csv_path = 'study_results.csv'
+    output_csv_path = 'predictions.csv'
 
     # load_model_path = 'checkpoints/CustomDenseNet169_0613_14:42:38.pth'
-    load_model_path = 'checkpoints/Best_0702.pth'                                          # 加载预训练的模型的路径，为None代表不加载
+    load_model_path = None                                        # 加载预训练的模型的路径，为None代表不加载
 
-    batch_size = 1                                                  # batch size
+    batch_size = 8                                                  # batch size
     use_gpu = True                                                  # user GPU or not
     num_workers = 4                                                 # how many workers for loading data
     print_freq = 20                                                 # print info every N batch
@@ -52,8 +61,9 @@ class Config(object):
             "lr_decay": self.lr_decay,
             "weight_decay": self.weight_decay,
             "batch_size": self.batch_size,
+            "time": time.strftime('%m%d_%H:%M:%S')
         }
-        return "&".join(["{}:{}".format(k, v) for k, v in print_dict.items()])
+        return "_".join(["{}:{}".format(k, v) for k, v in print_dict.items()])
 
 
 opt = Config()

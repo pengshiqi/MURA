@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import re
 import torch as t
 from torch import nn
 from torch.nn import functional as F
@@ -8,15 +9,17 @@ from torchvision import models
 from .BasicModule import BasicModule
 
 # load the original DenseNet model
-model = models.densenet169(pretrained=False)
+# model = models.densenet169(pretrained=False)
 # model.load_state_dict(t.load('./models/pretrained_models/densenet169-b2777c0a.pth'))
 
 
 # create custom DenseNet
 class DenseNet169(BasicModule):
 
-    def __init__(self, num_classes):
+    def __init__(self, num_classes=2):
         super(DenseNet169, self).__init__()
+
+        model = models.densenet169(pretrained=False)
 
         self.features = nn.Sequential(*list(model.features.children()))
 
@@ -31,12 +34,33 @@ class DenseNet169(BasicModule):
         out = self.classifier(out)
         return out
 
+    def load(self, path):
+        """
+        可加载指定路径的模型
+        """
+        # GPU 加载模型
+        # self.load_state_dict(t.load(path))
+
+        # 使用CPU加载GPU模型
+        state_dict = t.load(path, map_location=lambda storage, loc: storage)
+        pattern = re.compile(
+            r'^(.*denselayer\d+\.(?:norm|relu|conv))\.((?:[12])\.(?:weight|bias|running_mean|running_var))$')
+        for key in list(state_dict.keys()):
+            res = pattern.match(key)
+            if res:
+                new_key = res.group(1) + res.group(2)
+                state_dict[new_key] = state_dict[key]
+                del state_dict[key]
+        self.load_state_dict(state_dict)
+
 
 # create custom DenseNet
 class CustomDenseNet169(BasicModule):
 
-    def __init__(self, num_classes):
+    def __init__(self, num_classes=2):
         super(CustomDenseNet169, self).__init__()
+
+        model = models.densenet169(pretrained=False)
 
         self.features = nn.Sequential(*list(model.features.children()))
 

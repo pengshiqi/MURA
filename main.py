@@ -12,19 +12,22 @@ from tqdm import tqdm
 from sklearn.metrics import cohen_kappa_score#, confusion_matrix
 import time
 
+import models
 from config import opt
-from utils import Visualizer
+from utils import Visualizer, FocalLoss
 from dataset import MURA_Dataset
-from models import DenseNet169, CustomDenseNet169
 
 
 def train(**kwargs):
     opt.parse(kwargs)
-    vis = Visualizer(opt.env)
+    if opt.use_visdom:
+        vis = Visualizer(opt.env)
 
     # step 1: configure model
     # model = densenet169(pretrained=True)
-    model = DenseNet169(num_classes=2)
+    # model = DenseNet169(num_classes=2)
+    # model = ResNet152(num_classes=2)
+    model = getattr(models, opt.model)()
     if opt.load_model_path:
         model.load(opt.load_model_path)
     if opt.use_gpu:
@@ -47,13 +50,14 @@ def train(**kwargs):
         weight = weight.cuda()
 
     criterion = t.nn.CrossEntropyLoss(weight=weight)
+    # criterion = FocalLoss(alpha=weight, class_num=2)
     lr = opt.lr
     optimizer = t.optim.Adam(model.parameters(), lr=lr, weight_decay=opt.weight_decay)
 
     # step 4: meters
     loss_meter = meter.AverageValueMeter()
     confusion_matrix = meter.ConfusionMeter(2)
-    previous_loss = 1e100
+    previous_loss = 1e10
 
     # step 5: train
 
@@ -89,7 +93,8 @@ def train(**kwargs):
             confusion_matrix.add(s(Variable(score.data)).data, target.data)
 
             if ii % opt.print_freq == opt.print_freq - 1:
-                vis.plot('loss', loss_meter.value()[0])
+                if opt.use_visdom:
+                    vis.plot('loss', loss_meter.value()[0])
                 # print('loss', loss_meter.value()[0])
 
                 # debug
@@ -97,16 +102,20 @@ def train(**kwargs):
                     import ipdb
                     ipdb.set_trace()
 
-        ck_name = str(opt) + "&" + str(epoch) + ".pth"
+        ck_name = str(opt) + "_" + str(epoch) + ".pth"
         model.save(os.path.join('checkpoints', model.model_name, prefix, ck_name))
         # model.save()
 
         # validate and visualize
         val_cm, val_accuracy, val_loss = val(model, val_dataloader)
 
-        vis.plot('val_accuracy', val_accuracy)
-        # print('val_accuracy', val_accuracy)
-        vis.log("epoch:{epoch},lr:{lr},loss:{loss},train_cm:{train_cm},val_cm:{val_cm}".format(
+        if opt.use_visdom:
+            vis.plot('val_accuracy', val_accuracy)
+            vis.log("epoch:{epoch},lr:{lr},loss:{loss},train_cm:{train_cm},val_cm:{val_cm}".format(
+                epoch=epoch, loss=loss_meter.value()[0], val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()),
+                lr=lr))
+        print('val_accuracy: ', val_accuracy)
+        print("epoch:{epoch},lr:{lr},loss:{loss},train_cm:{train_cm},val_cm:{val_cm}".format(
             epoch=epoch, loss=loss_meter.value()[0], val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()),
             lr=lr))
 
@@ -157,8 +166,10 @@ def test(**kwargs):
     opt.parse(kwargs)
 
     # configure model
-    model = DenseNet169(num_classes=2)
+    # model = DenseNet169(num_classes=2)
     # model = CustomDenseNet169(num_classes=2)
+    # model = ResNet152(num_classes=2)
+    model = getattr(models, opt.model)()
     if opt.load_model_path:
         model.load(opt.load_model_path)
     if opt.use_gpu:
@@ -202,6 +213,62 @@ def test(**kwargs):
     # return results
 
 
+def ensemble_test(**kwargs):
+    opt.parse(kwargs)
+
+    # configure model
+    model_hub = []
+    for i in range(len(opt.ensemble_model_types)):
+        model = getattr(models, opt.ensemble_model_types[i])()
+        if opt.ensemble_model_paths[i]:
+            model.load(opt.ensemble_model_paths[i])
+        if opt.use_gpu:
+            model.cuda()
+        model.eval()
+        model_hub.append(model)
+
+    # data
+    test_data = MURA_Dataset(opt.data_root, opt.test_image_paths, train=False, test=True)
+    test_dataloader = DataLoader(test_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
+
+    results = []
+    # confusion_matrix = meter.ConfusionMeter(2)
+    # s = t.nn.Softmax()
+
+    for ii, (data, label, path) in tqdm(enumerate(test_dataloader)):
+        input = Variable(data, volatile=True)
+        if opt.use_gpu:
+            input = input.cuda()
+
+        probability_hub = []
+        for model in model_hub:
+            score = model(input)
+            # confusion_matrix.add(s(Variable(score.data.squeeze())).data, label.type(t.LongTensor))
+            probability = t.nn.functional.softmax(score)[:, 0].data.tolist()
+            probability_hub.append(probability)
+
+        # print(probability_hub)
+
+        prob = [np.mean([x[i] for x in probability_hub]) for i in range(len(probability_hub[0]))]
+
+        # 每一行为 图片路径 和 positive的概率
+        batch_results = [(path_, probability_) for path_, probability_ in zip(path, prob)]
+
+        results += batch_results
+
+    # cm_value = confusion_matrix.value()
+    # accuracy = 100. * (cm_value[0][0] + cm_value[1][1]) / (cm_value.sum())
+
+    # print('confusion matrix: ')
+    # print(cm_value)
+    # print(f'accuracy: {accuracy}')
+
+    write_csv(results, opt.result_file)
+
+    calculate_cohen_kappa()
+    # return results
+
+
 def write_csv(results, file_name):
     with open(file_name, 'w') as f:
         writer = csv.writer(f)
@@ -227,7 +294,7 @@ def calculate_cohen_kappa(threshold=0.5):
                 result_dict[folder_path] = [prob]
 
     for k, v in result_dict.items():
-        result_dict[k] = np.mean(v)
+        result_dict[k] = np.min(v)
         # visualize
         # print(k, result_dict[k])
 
@@ -281,11 +348,11 @@ def help(**kwargs):
 
 if __name__ == '__main__':
     # ------- Train --------
-    # import fire
-    # fire.Fire()
+    import fire
+    fire.Fire()
 
     # ------- Test --------
-    opt.test_image_paths = sys.argv[1]
-    opt.output_csv_path = sys.argv[2]
-    test()
+    # opt.test_image_paths = sys.argv[1]
+    # opt.output_csv_path = sys.argv[2]
+    # test()
 
