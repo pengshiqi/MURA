@@ -13,7 +13,7 @@ import time
 from config import opt
 from utils import Visualizer
 from dataset import MURA_Dataset, MURAClass_Dataset
-from models import DenseNet169, CustomDenseNet169
+from models import DenseNet169, CustomDenseNet169, MultiDenseNet169
 
 
 def train(**kwargs):
@@ -21,8 +21,8 @@ def train(**kwargs):
     vis = Visualizer(opt.env)
 
     # step 1: configure model
-    # model = densenet169(pretrained=True)
-    model = CustomDenseNet169(num_classes=2)
+    # model = CustomDenseNet169(num_classes=2)
+    model = MultiDenseNet169(num_classes=2)
 
     if opt.load_model_path:
         model.load(opt.load_model_path)
@@ -32,22 +32,20 @@ def train(**kwargs):
     model.train()
 
     # step 2: data
-    train_data = MURA_Dataset(opt.data_root, opt.train_image_paths, train=True)
-    val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, test=True)
+    # train_data = MURA_Dataset(opt.data_root, opt.train_image_paths, train=True)
+    # val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, test=True)
 
-    # train_data = MURAClass_Dataset(opt.data_root, opt.train_image_paths, 'XR_FINGER', train=True)
-    # val_data = MURAClass_Dataset(opt.data_root, opt.test_image_paths, 'XR_FINGER', test=True)
-    # print(train_data.__len__(), val_data.__len__())
+    train_data = MURAClass_Dataset(opt.data_root, opt.train_image_paths, 'all', train=True, test=False)
+    val_data = MURAClass_Dataset(opt.data_root, opt.test_image_paths, 'all', train=False, test=True)
+    print('Training images:', train_data.__len__(), 'Validation images:', val_data.__len__())
 
-    train_dataloader = DataLoader(train_data, opt.batch_size, shuffle=True, num_workers=opt.num_workers)
-    # val_dataloader = DataLoader(val_data, opt.batch_size, shuffle=False, num_workers=opt.num_workers)
+    train_dataloader = DataLoader(train_data, batch_size=opt.batch_size, shuffle=True, num_workers=opt.num_workers)
     val_dataloader = DataLoader(val_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
 
     # step 3: criterion and optimizer
     A = 21935
     N = 14873
-    # A = 3138
-    # N = 1968
+
     weight = t.Tensor([A / (A + N), N / (A + N)])
     if opt.use_gpu:
         weight = weight.cuda()
@@ -77,17 +75,20 @@ def train(**kwargs):
         loss_meter.reset()
         confusion_matrix.reset()
 
-        for ii, (data, label, _) in tqdm(enumerate(train_dataloader)):
+        for ii, (data, label, body_part, _) in tqdm(enumerate(train_dataloader)):
 
             # train model
             input = Variable(data)
             target = Variable(label)
+            body_part = Variable(body_part)
             if opt.use_gpu:
                 input = input.cuda()
                 target = target.cuda()
+                body_part = body_part.cuda()
 
             optimizer.zero_grad()
-            score = model(input)
+            score = model(input, body_part)
+            # score = model(input)
             loss = criterion(score, target)
             loss.backward()
             optimizer.step()
@@ -147,15 +148,18 @@ def val(model, dataloader):
     loss_meter = meter.AverageValueMeter()
 
     for ii, data in tqdm(enumerate(dataloader)):
-        input, label, _ = data
+        input, label, body_part, _ = data
         val_input = Variable(input, volatile=True)
         target = Variable(label)
+        body_part = Variable(body_part)
         if opt.use_gpu:
             val_input = val_input.cuda()
             target = target.cuda()
-        score = model(val_input)
+            body_part = body_part.cuda()
+        score = model(val_input, body_part)
+        # score = model(val_input)
         # confusion_matrix.add(s(Variable(score.data.squeeze())).data, label.type(t.LongTensor)) # original used
-        confusion_matrix.add(s(Variable(score.data)).data, label.type(t.LongTensor)) # use for separate body part
+        confusion_matrix.add(s(Variable(score.data)).data, label.type(t.LongTensor))  # use for separate body part
         loss = criterion(score, target)
         loss_meter.add(loss.data[0])
 
@@ -172,7 +176,8 @@ def test(**kwargs):
 
     # configure model
     # model = DenseNet169(num_classes=2)
-    model = CustomDenseNet169(num_classes=2)
+    # model = CustomDenseNet169(num_classes=2)
+    model = MultiDenseNet169(num_classes=2)
     if opt.load_model_path:
         model.load(opt.load_model_path)
     if opt.use_gpu:
@@ -181,18 +186,20 @@ def test(**kwargs):
     model.eval()
 
     # data
-    test_data = MURA_Dataset(opt.data_root, opt.test_image_paths, test=True)
+    # test_data = MURA_Dataset(opt.data_root, opt.test_image_paths, test=True)
+    test_data = MURAClass_Dataset(opt.data_root, opt.test_image_paths, 'all', train=False, test=True)
     test_dataloader = DataLoader(test_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
 
     results = []
     confusion_matrix = meter.ConfusionMeter(2)
     s = t.nn.Softmax()
 
-    for ii, (data, label, path) in tqdm(enumerate(test_dataloader)):
+    for ii, (data, label, body_part, path) in tqdm(enumerate(test_dataloader)):
         input = Variable(data, volatile=True)
         if opt.use_gpu:
             input = input.cuda()
-        score = model(input)
+        score = model(input, body_part)
+        # score = model(input)
 
         confusion_matrix.add(s(Variable(score.data.squeeze())).data, label.type(t.LongTensor))
 

@@ -49,3 +49,72 @@ XR_WRIST Accuracy 87.76371308016877
 Overall Acc: 84.07570473145175
 Overall kappa: 0.6677063572850273
 
+
+Independet Training Result:
+ELBOW 0.7075058902726354
+ELBOW Accuracy 86.07594936708861
+--------------------------------------------
+XR_FINGER 0.5485812553740327
+XR_FINGER Accuracy 77.71428571428571
+--------------------------------------------
+XR_FOREARM 0.5585441226965777
+XR_FOREARM Accuracy 78.19548872180451
+--------------------------------------------
+XR_HAND 0.5403173575129534
+XR_HAND Accuracy 79.64071856287426
+--------------------------------------------
+XR_HUMERUS 0.7479406919275123
+XR_HUMERUS Accuracy 87.4074074074074
+--------------------------------------------
+XR_SHOULDER 0.6176627250452753
+XR_SHOULDER Accuracy 80.9278350515464
+--------------------------------------------
+XR_WRIST 0.7201889020070839
+XR_WRIST Accuracy 86.91983122362869
+
+Multi-Network
+env MURA
+data_root /DATA4_DB3/data/public/
+train_image_paths /DATA4_DB3/data/public/MURA-v1.1/train_image_paths.csv
+test_image_paths /DATA4_DB3/data/public/MURA-v1.1/valid_image_paths.csv
+load_model_path checkpoints/MultiDenseNet169/MultiDenseNet169_best_model.pth
+batch_size 32
+use_gpu True
+num_workers 4
+print_freq 50
+debug_file tmp/debug
+result_file result.csv
+max_epoch 20
+lr 0.0001
+lr_pre 1e-05
+lr_decay 0.5
+weight_decay 0.0001
+confusionion matrix: 
+[[1546  121]
+ [ 424 1106]]
+accuracy: 82.95276822020644
+--------------------------------------------
+XR_ELBOW 0.7062204192021636
+XR_ELBOW Accuracy 86.07594936708861
+--------------------------------------------
+XR_FINGER 0.6276100545285277
+XR_FINGER Accuracy 81.71428571428571
+--------------------------------------------
+XR_FOREARM 0.6652939830702357
+XR_FOREARM Accuracy 83.45864661654136
+--------------------------------------------
+XR_HAND 0.5429077443245853
+XR_HAND Accuracy 79.64071856287426
+--------------------------------------------
+XR_HUMERUS 0.807375699703655
+XR_HUMERUS Accuracy 90.37037037037037
+--------------------------------------------
+XR_SHOULDER 0.6589964844998402
+XR_SHOULDER Accuracy 82.98969072164948
+--------------------------------------------
+XR_WRIST 0.747680608365019
+XR_WRIST Accuracy 88.18565400843882
+--------------------------------------------
+Overall Acc: 84.63361648017838
+Overall kappa: 0.6794407133848609
+

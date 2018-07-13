@@ -110,7 +110,10 @@ class MURAClass_Dataset(object):
     def __init__(self, root, csv_path, part, transforms=None, train=True, test=False, rescale_fg=False):
         with open(csv_path, 'rb') as F:
             d = F.readlines()
-            imgs = [root + str(x, encoding='utf-8')[:-1] for x in d if str(x, encoding='utf-8')[:-1].split('/')[2]==part]
+            if part == 'all':
+                imgs = [root + str(x, encoding='utf-8').strip() for x in d]  # 所有图片的存储路径, [:-1]目的是抛弃最末尾的\n
+            else:
+                imgs = [root + str(x, encoding='utf-8').strip() for x in d if str(x, encoding='utf-8').strip().split('/')[2].split('_')[1]==part]
 
         self.imgs = imgs
         self.rescale_fg = rescale_fg
@@ -141,7 +144,7 @@ class MURAClass_Dataset(object):
 
     def __getitem__(self, index):
         """
-        一次返回一张图片的数据：data, label, path
+        一次返回一张图片的数据：data, label, body_part, path
         """
 
         img_path = self.imgs[index]
@@ -154,22 +157,43 @@ class MURAClass_Dataset(object):
         else:
             raise IndexError
 
+        body_part = img_path.split('/')[6].split('_')[1]
+        if body_part == 'ELBOW':
+            body_part = 1
+        elif body_part == 'FINGER':
+            body_part = 2
+        elif body_part == 'FOREARM':
+            body_part = 3
+        elif body_part == 'HAND':
+            body_part = 4
+        elif body_part == 'HUMERUS':
+            body_part = 5
+        elif body_part == 'SHOULDER':
+            body_part = 6
+        elif body_part == 'WRIST':
+            body_part = 7
+        else:
+            print(body_part)
+            raise IndexError
+
         data = Image.open(img_path)
 
         data = self.transforms(data)
 
-        return data, label, img_path
+        return data, label, body_part, img_path
 
     def __len__(self):
         return len(self.imgs)
 
 
 if __name__ == "__main__":
-    from config.config import opt
+    # from config import opt
     from tqdm import tqdm
-    train_data = MURA_Dataset(opt.data_root, opt.train_image_paths, train=True)
-    l = [x[0] for x in tqdm(train_data)]
-    x = t.cat(l, 0)
-    print(x.mean())
-    print(x.std())
+    train_data = MURAClass_Dataset('/DATA4_DB3/data/public/', '/DATA4_DB3/data/public/MURA-v1.1/train_image_paths.csv', part='all', train=True)
+    # print(train_data[2][0].size())
+    print(train_data[0])
+    # l = [x[0] for x in tqdm(train_data)]
+    # x = t.cat(l, 0)
+    # print(x.mean())
+    # print(x.std())
 
