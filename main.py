@@ -31,6 +31,7 @@ def train(**kwargs):
     if opt.load_model_path:
         model.load(opt.load_model_path)
     if opt.use_gpu:
+        print('CUDA MODEL!')
         model.cuda()
 
     model.train()
@@ -38,6 +39,8 @@ def train(**kwargs):
     # step 2: data
     train_data = MURA_Dataset(opt.data_root, opt.train_image_paths, train=True, test=False)
     val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, train=False, test=False)
+
+    print('Training images:', len(train_data), 'Validation images:', len(val_data))
 
     train_dataloader = DataLoader(train_data, opt.batch_size, shuffle=True, num_workers=opt.num_workers)
     val_dataloader = DataLoader(val_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
@@ -73,17 +76,22 @@ def train(**kwargs):
         loss_meter.reset()
         confusion_matrix.reset()
 
-        for ii, (data, label, _) in tqdm(enumerate(train_dataloader)):
+        for ii, (data, label, _, body_part) in tqdm(enumerate(train_dataloader)):
 
             # train model
             input = Variable(data)
             target = Variable(label)
+            # body_part = Variable(body_part)
             if opt.use_gpu:
                 input = input.cuda()
                 target = target.cuda()
+                # body_part = body_part.cuda()
 
             optimizer.zero_grad()
-            score = model(input)
+            if opt.model == 'MultiBranchDenseNet169':
+                score = model(input, body_part)
+            else:
+                score = model(input)
             loss = criterion(score, target)
             loss.backward()
             optimizer.step()
@@ -142,13 +150,18 @@ def val(model, dataloader):
     loss_meter = meter.AverageValueMeter()
 
     for ii, data in tqdm(enumerate(dataloader)):
-        input, label, _ = data
+        input, label, _, body_part = data
         val_input = Variable(input, volatile=True)
         target = Variable(label)
+        # body_part = Variable(body_part)
         if opt.use_gpu:
             val_input = val_input.cuda()
             target = target.cuda()
-        score = model(val_input)
+            # body_part = body_part.cuda()
+        if opt.model == 'MultiBranchDenseNet169':
+            score = model(val_input, body_part)
+        else:
+            score = model(val_input)
         # confusion_matrix.add(softmax(score.data.squeeze()), label.type(t.LongTensor))
         confusion_matrix.add(s(Variable(score.data.squeeze())).data, label.type(t.LongTensor))
         loss = criterion(score, target)
@@ -185,11 +198,16 @@ def test(**kwargs):
     # confusion_matrix = meter.ConfusionMeter(2)
     # s = t.nn.Softmax()
 
-    for ii, (data, label, path) in tqdm(enumerate(test_dataloader)):
+    for ii, (data, label, body_part, path) in tqdm(enumerate(test_dataloader)):
         input = Variable(data, volatile=True)
+        # body_part = Variable(body_part, volatile=True)
         if opt.use_gpu:
             input = input.cuda()
-        score = model(input)
+            # body_part = body_part.cuda()
+        if opt.model == 'MultiBranchDenseNet169':
+            score = model(input, body_part)
+        else:
+            score = model(input)
 
         # confusion_matrix.add(s(Variable(score.data.squeeze())).data, label.type(t.LongTensor))
 
@@ -294,7 +312,7 @@ def calculate_cohen_kappa(threshold=0.5):
                 result_dict[folder_path] = [prob]
 
     for k, v in result_dict.items():
-        result_dict[k] = np.min(v)
+        result_dict[k] = np.mean(v)
         # visualize
         # print(k, result_dict[k])
 

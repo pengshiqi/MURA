@@ -7,13 +7,13 @@ import time
 class Config(object):
     use_visdom = True
     env = 'MURA'                                                    # visdom 环境
-    model = 'DenseNet169'  # 使用的模型，名字必须与models/__init__.py中的名字一致
+    model = 'MultiBranchDenseNet169'  # 使用的模型，名字必须与models/__init__.py中的名字一致
 
     # 组合模型的 模型类型 和 路径
-    ensemble_model_types = ['DenseNet169', 'ResNet152', 'VGG16']
+    ensemble_model_types = ['DenseNet169', 'ResNet152']
     ensemble_model_paths = ['checkpoints/best_densenet169_0702.pth',
                             'checkpoints/best_resnet152_0708.pth',
-                            'checkpoints/best_vgg16_0708.pth']
+                            ]
 
     data_root = '/DATA4_DB3/data/public/'
 

@@ -18,9 +18,22 @@ MURA_MEAN = [0.22588661454502146] * 3
 MURA_STD = [0.17956269377916526] * 3
 
 
+def logo_filter(data, threshold=200):
+
+    im = Image.new('L', data.size)
+
+    list_data = list(data.split()[0].getdata())
+
+    pixels = [x if x < threshold else 0 for x in list_data]
+
+    im.putdata(data=pixels)
+
+    return im
+
+
 class MURA_Dataset(object):
 
-    def __init__(self, root, csv_path, transforms=None, train=True, test=False):
+    def __init__(self, root, csv_path, part='all', transforms=None, train=True, test=False):
         """
         主要目标： 获取所有图片的地址，并根据训练，验证，测试划分数据
 
@@ -28,11 +41,17 @@ class MURA_Dataset(object):
         val set:       train = False, test = False
         test set:      train = False, test = True
 
+        part = 'all', 'XR_HAND', etc.
+        用于提取特定部位的数据。
         """
 
         with open(csv_path, 'rb') as F:
             d = F.readlines()
-            imgs = [root + str(x, encoding='utf-8').strip() for x in d]  # 所有图片的存储路径, [:-1]目的是抛弃最末尾的\n
+            if part == 'all':
+                imgs = [root + str(x, encoding='utf-8').strip() for x in d]  # 所有图片的存储路径, [:-1]目的是抛弃最末尾的\n
+            else:
+                imgs = [root + str(x, encoding='utf-8').strip() for x in d if
+                        str(x, encoding='utf-8').strip().split('/')[2] == part]
 
         self.imgs = imgs
         self.train = train
@@ -43,6 +62,7 @@ class MURA_Dataset(object):
             if self.train and not self.test:
                 # 这里的X光图是1 channel的灰度图
                 self.transforms = T.Compose([
+                    # T.Lambda(logo_filter),
                     T.Resize(320),
                     T.RandomCrop(320),
                     T.RandomHorizontalFlip(),
@@ -55,6 +75,7 @@ class MURA_Dataset(object):
             if not self.train:
                 # 这里的X光图是1 channel的灰度图
                 self.transforms = T.Compose([
+                    # T.Lambda(logo_filter),
                     T.Resize(320),
                     T.CenterCrop(320),
                     T.ToTensor(),
@@ -64,7 +85,7 @@ class MURA_Dataset(object):
 
     def __getitem__(self, index):
         """
-        一次返回一张图片的数据：data, label, path
+        一次返回一张图片的数据：data, label, path, body_part
         """
 
         img_path = self.imgs[index]
@@ -73,6 +94,7 @@ class MURA_Dataset(object):
 
         data = self.transforms(data)
 
+        # label
         if not self.test:
             label_str = img_path.split('_')[-1].split('/')[0]
             if label_str == 'positive':
@@ -87,7 +109,10 @@ class MURA_Dataset(object):
         if self.test:
             label = 0
 
-        return data, label, img_path
+        # body part
+        body_part = img_path.split('/')[6]
+
+        return data, label, img_path, body_part
 
     def __len__(self):
         return len(self.imgs)
