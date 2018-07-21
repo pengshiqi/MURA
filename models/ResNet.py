@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import math
+import copy
+import torch as t
 from .BasicModule import BasicModule
 from torch import nn
 from torch.nn import functional as F
 from torchvision import models
+from torch.autograd import Variable
 
 
 class ResidualBlock(nn.Module):
@@ -125,3 +128,154 @@ class ResNet152(BasicModule):
 
         return x
 
+
+class MultiBranchResNet101(BasicModule):
+
+    def __init__(self, num_classes=2):
+        model = models.resnet101(pretrained=True)
+
+        super(MultiBranchResNet101, self).__init__()
+
+        # shared layers
+        self.conv1 = model.conv1
+        self.bn1 = model.bn1
+        self.relu = model.relu
+        self.maxpool = model.maxpool
+        self.layer1 = model.layer1
+        self.layer2 = model.layer2
+        self.layer3 = model.layer3
+
+        # specific layers
+        for x in ['XR_ELBOW', 'XR_FINGER', 'XR_FOREARM', 'XR_HAND', 'XR_HUMERUS', 'XR_SHOULDER', 'XR_WRIST']:
+            setattr(self, f'layer4_{x}', copy.deepcopy(model.layer4))
+            setattr(self, f'avgpool_{x}', copy.deepcopy(model.avgpool))
+            setattr(self, f'ada_pooling_{x}', nn.AdaptiveAvgPool2d((1, 1)))
+            setattr(self, f'fc_{x}', nn.Linear(2048, num_classes))
+
+    def forward(self, x, body_part):
+        # shared layers
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+
+        # specific layers
+        out1 = Variable(t.FloatTensor())
+        for (xx, bp) in zip(x, body_part):
+            d = xx.unsqueeze(0).cuda()
+            d = getattr(self, f'layer4_{bp}')(d)
+            if out1.size():
+                out1 = t.cat([out1, d], dim=0)
+            else:
+                out1 = d
+
+        out2 = Variable(t.FloatTensor())
+        for (xx, bp) in zip(out1, body_part):
+            d = xx.unsqueeze(0).cuda()
+            d = getattr(self, f'avgpool_{bp}')(d)
+            if out2.size():
+                out2 = t.cat([out2, d], dim=0)
+            else:
+                out2 = d
+
+        out3 = Variable(t.FloatTensor())
+        for (xx, bp) in zip(out2, body_part):
+            d = xx.unsqueeze(0).cuda()
+            d = getattr(self, f'ada_pooling_{bp}')(d)
+            if out3.size():
+                out3 = t.cat([out3, d], dim=0)
+            else:
+                out3 = d
+
+        out4 = out3.view(out3.size(0), -1)
+        
+        out5 = Variable(t.FloatTensor())
+        for (xx, bp) in zip(out4, body_part):
+            d = xx.unsqueeze(0).cuda()
+            d = getattr(self, f'fc_{bp}')(d)
+            if out5.size():
+                out5 = t.cat([out5, d], dim=0)
+            else:
+                out5 = d
+
+        return out5
+
+
+class MultiBranchResNet50(BasicModule):
+
+    def __init__(self, num_classes=2):
+        model = models.resnet50(pretrained=True)
+
+        super(MultiBranchResNet50, self).__init__()
+
+        # shared layers
+        self.conv1 = model.conv1
+        self.bn1 = model.bn1
+        self.relu = model.relu
+        self.maxpool = model.maxpool
+        self.layer1 = model.layer1
+        self.layer2 = model.layer2
+        self.layer3 = model.layer3
+
+        # specific layers
+        for x in ['XR_ELBOW', 'XR_FINGER', 'XR_FOREARM', 'XR_HAND', 'XR_HUMERUS', 'XR_SHOULDER', 'XR_WRIST']:
+            setattr(self, f'layer4_{x}', copy.deepcopy(model.layer4))
+            setattr(self, f'avgpool_{x}', copy.deepcopy(model.avgpool))
+            setattr(self, f'ada_pooling_{x}', nn.AdaptiveAvgPool2d((1, 1)))
+            setattr(self, f'fc_{x}', nn.Linear(2048, num_classes))
+
+    def forward(self, x, body_part):
+        # shared layers
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+
+        # specific layers
+        out1 = Variable(t.FloatTensor())
+        for (xx, bp) in zip(x, body_part):
+            d = xx.unsqueeze(0).cuda()
+            d = getattr(self, f'layer4_{bp}')(d)
+            if out1.size():
+                out1 = t.cat([out1, d], dim=0)
+            else:
+                out1 = d
+
+        out2 = Variable(t.FloatTensor())
+        for (xx, bp) in zip(out1, body_part):
+            d = xx.unsqueeze(0).cuda()
+            d = getattr(self, f'avgpool_{bp}')(d)
+            if out2.size():
+                out2 = t.cat([out2, d], dim=0)
+            else:
+                out2 = d
+
+        out3 = Variable(t.FloatTensor())
+        for (xx, bp) in zip(out2, body_part):
+            d = xx.unsqueeze(0).cuda()
+            d = getattr(self, f'ada_pooling_{bp}')(d)
+            if out3.size():
+                out3 = t.cat([out3, d], dim=0)
+            else:
+                out3 = d
+
+        out4 = out3.view(out3.size(0), -1)
+        
+        out5 = Variable(t.FloatTensor())
+        for (xx, bp) in zip(out4, body_part):
+            d = xx.unsqueeze(0).cuda()
+            d = getattr(self, f'fc_{bp}')(d)
+            if out5.size():
+                out5 = t.cat([out5, d], dim=0)
+            else:
+                out5 = d
+
+        return out5

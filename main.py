@@ -117,17 +117,21 @@ def train(**kwargs):
         # validate and visualize
         val_cm, val_accuracy, val_loss = val(model, val_dataloader)
 
+        cm = confusion_matrix.value()
+
         if opt.use_visdom:
             vis.plot('val_accuracy', val_accuracy)
-            vis.log("epoch:{epoch},lr:{lr},loss:{loss},train_cm:{train_cm},val_cm:{val_cm}".format(
-                epoch=epoch, loss=loss_meter.value()[0], val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()),
-                lr=lr))
+            vis.log("epoch:{epoch},lr:{lr},loss:{loss},train_cm:{train_cm},val_cm:{val_cm},train_acc:{train_acc}, "
+                     "val_acc:{val_acc}".format(epoch=epoch, loss=loss_meter.value()[0], val_cm=str(val_cm.value()),
+                                         train_cm=str(confusion_matrix.value()), lr=lr,
+                                         train_acc=str(100. * (cm[0][0] + cm[1][1]) / (cm.sum())),
+                                         val_acc=str(100. * (val_cm.value()[0][0] + val_cm.value()[1][1]) / (val_cm.value().sum()))))
         print('val_accuracy: ', val_accuracy)
         print("epoch:{epoch},lr:{lr},loss:{loss},train_cm:{train_cm},val_cm:{val_cm},train_acc:{train_acc}, "
               "val_acc:{val_acc}".format(epoch=epoch, loss=loss_meter.value()[0], val_cm=str(val_cm.value()),
                                          train_cm=str(confusion_matrix.value()), lr=lr,
-                                         train_acc=100. * (confusion_matrix[0][0] + confusion_matrix[1][1]) / (confusion_matrix.sum()),
-                                         val_acc=100. * (val_cm[0][0] + val_cm[1][1]) / (val_cm.sum())))
+                                         train_acc=100. * (cm[0][0] + cm[1][1]) / (cm.sum()),
+                                         val_acc=100. * (val_cm.value()[0][0] + val_cm.value()[1][1]) / (val_cm.value().sum())))
 
         # update learning rate
         # if loss_meter.value()[0] > previous_loss:

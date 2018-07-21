@@ -140,7 +140,7 @@ class MultiBranchDenseNet169(BasicModule):
 
         # print('out1.size(): ', out1.size()) -> torch.Size([8, 1664, 10, 10])
         out2 = F.relu(out1, inplace=True)
-        out2 = self.dropout(0.5)(out2)
+        out2 = self.dropout(out2)
 
         # print('out2.size(): ', out2.size()) -> torch.Size([8, 1664, 10, 10])
 
