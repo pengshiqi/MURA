@@ -110,9 +110,12 @@ class MultiBranchDenseNet169(BasicModule):
             model.features.transition1,
             model.features.denseblock2,
             model.features.transition2,
+            nn.Dropout(0.5),
             model.features.denseblock3,
             model.features.transition3
         )
+
+        self.dropout = nn.Dropout(0.5)
 
         for x in ['XR_ELBOW', 'XR_FINGER', 'XR_FOREARM', 'XR_HAND', 'XR_HUMERUS', 'XR_SHOULDER', 'XR_WRIST']:
             setattr(self, f'features_specific_{x}', copy.deepcopy(nn.Sequential(model.features.denseblock4,

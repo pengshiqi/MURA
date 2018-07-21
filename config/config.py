@@ -57,13 +57,13 @@ class Config(object):
 
     def __str__(self):
         print_dict = {
-            "lr": self.lr,
-            "lr_decay": self.lr_decay,
-            "weight_decay": self.weight_decay,
-            "batch_size": self.batch_size,
+            # "lr": self.lr,
+            # "lr_decay": self.lr_decay,
+            # "weight_decay": self.weight_decay,
+            # "batch_size": self.batch_size,
             "time": time.strftime('%m%d_%H:%M:%S')
         }
-        return "_".join(["{}:{}".format(k, v) for k, v in print_dict.items()])
+        return "_".join(["{}_{}".format(k, v) for k, v in print_dict.items()])
 
 
 opt = Config()

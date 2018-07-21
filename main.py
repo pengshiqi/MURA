@@ -88,7 +88,7 @@ def train(**kwargs):
                 # body_part = body_part.cuda()
 
             optimizer.zero_grad()
-            if opt.model == 'MultiBranchDenseNet169':
+            if opt.model.startswith('MultiBranch'):
                 score = model(input, body_part)
             else:
                 score = model(input)
@@ -110,7 +110,7 @@ def train(**kwargs):
                     import ipdb
                     ipdb.set_trace()
 
-        ck_name = str(opt) + "_" + str(epoch) + ".pth"
+        ck_name = f'epoch_{epoch}_{str(opt)}.pth'
         model.save(os.path.join('checkpoints', model.model_name, prefix, ck_name))
         # model.save()
 
@@ -123,9 +123,11 @@ def train(**kwargs):
                 epoch=epoch, loss=loss_meter.value()[0], val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()),
                 lr=lr))
         print('val_accuracy: ', val_accuracy)
-        print("epoch:{epoch},lr:{lr},loss:{loss},train_cm:{train_cm},val_cm:{val_cm}".format(
-            epoch=epoch, loss=loss_meter.value()[0], val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()),
-            lr=lr))
+        print("epoch:{epoch},lr:{lr},loss:{loss},train_cm:{train_cm},val_cm:{val_cm},train_acc:{train_acc}, "
+              "val_acc:{val_acc}".format(epoch=epoch, loss=loss_meter.value()[0], val_cm=str(val_cm.value()),
+                                         train_cm=str(confusion_matrix.value()), lr=lr,
+                                         train_acc=100. * (confusion_matrix[0][0] + confusion_matrix[1][1]) / (confusion_matrix.sum()),
+                                         val_acc=100. * (val_cm[0][0] + val_cm[1][1]) / (val_cm.sum())))
 
         # update learning rate
         # if loss_meter.value()[0] > previous_loss:
@@ -158,7 +160,7 @@ def val(model, dataloader):
             val_input = val_input.cuda()
             target = target.cuda()
             # body_part = body_part.cuda()
-        if opt.model == 'MultiBranchDenseNet169':
+        if opt.model.startswith('MultiBranch'):
             score = model(val_input, body_part)
         else:
             score = model(val_input)
@@ -204,7 +206,7 @@ def test(**kwargs):
         if opt.use_gpu:
             input = input.cuda()
             # body_part = body_part.cuda()
-        if opt.model == 'MultiBranchDenseNet169':
+        if opt.model.startswith('MultiBranch'):
             score = model(input, body_part)
         else:
             score = model(input)
