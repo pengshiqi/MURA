@@ -110,7 +110,6 @@ class MultiBranchDenseNet169(BasicModule):
             model.features.transition1,
             model.features.denseblock2,
             model.features.transition2,
-            nn.Dropout(0.5),
             model.features.denseblock3,
             model.features.transition3
         )
@@ -141,6 +140,7 @@ class MultiBranchDenseNet169(BasicModule):
 
         # print('out1.size(): ', out1.size()) -> torch.Size([8, 1664, 10, 10])
         out2 = F.relu(out1, inplace=True)
+        out2 = self.dropout(0.5)(out2)
 
         # print('out2.size(): ', out2.size()) -> torch.Size([8, 1664, 10, 10])
 
