@@ -134,14 +134,15 @@ def train(**kwargs):
                                          val_acc=100. * (val_cm.value()[0][0] + val_cm.value()[1][1]) / (val_cm.value().sum())))
 
         # update learning rate
-        # if loss_meter.value()[0] > previous_loss:
-        if val_loss > previous_loss:
+        if loss_meter.value()[0] > previous_loss:
+        # if val_loss > previous_loss:
             lr = lr * opt.lr_decay
             # 第二种降低学习率的方法:不会有moment等信息的丢失
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr
 
-        previous_loss = val_loss
+        # previous_loss = val_loss
+        previous_loss = loss_meter.value()[0]
 
 
 def val(model, dataloader):
