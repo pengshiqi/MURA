@@ -16,21 +16,23 @@ class Config(object):
     # load_model_path = '/DB/rhome/bllai/PyTorchProjects/MURA/checkpoints/CustomDenseNet169/CustomDenseNet169_best_model.pth'
     load_model_path = None
 
-    # batch_size = 8                                                  # batch size
-    batch_size = 32
-    use_gpu = True                                                  # user GPU or not
-    num_workers = 4                                                 # how many workers for loading data
-    print_freq = 50                                                 # print info every N batch
+    batch_size = 32                       # batchsize
+    num_workers = 4                       # how many workers for loading data
+    print_freq = 50                       # print info every N batch
 
-    debug_file = 'tmp/debug'                                        # if os.path.exists(debug_file): enter ipdb
+    debug_file = 'tmp/debug'              # if os.path.exists(debug_file): enter ipdb
     result_file = 'result.csv'
 
-    max_epoch = 20
-    lr = 0.0001                                                     # initial learning rate
-    lr_pre = 0.1 * lr                                               # learning rate of pretrained part
-    # lr_decay = 0.3                                                  # when val_loss increase, lr = lr*lr_decay
+    max_epoch = 30                        # number of epochs
+    lr = 0.0001                           # initial learning rate
+    lr_pre = 0.1 * lr                     # learning rate of pretrained part
+    # lr_decay = 0.3                      # when val_loss increase, lr = lr*lr_decay
     lr_decay = 0.5
-    weight_decay = 1e-4                                             # loss function
+    weight_decay = 1e-4                   # loss function
+
+    use_gpu = True                        # use GPU or not
+    parallel = False                      # if parrallel
+    num_of_gpu = 2                        # number of GPU
 
     def parse(self, kwargs):
         """

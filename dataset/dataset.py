@@ -4,6 +4,7 @@ import numpy as np
 import torch as t
 from PIL import Image
 from torchvision import transforms as T
+from torch.utils.data import DataLoader
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
@@ -67,8 +68,8 @@ class MURA_Dataset(object):
                     T.RandomVerticalFlip(),
                     T.RandomRotation(30),
                     T.ToTensor(),
-                    T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),  # 转换成3 channel
-                    T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+                    T.Lambda(lambda x: t.cat([x] * 3, 0)),  # 转换成3 channel
+                    T.Normalize(mean=MURA_MEAN, std=MURA_STD),
                 ])
             if test:
                 # 这里的X光图是1 channel的灰度图
@@ -76,8 +77,8 @@ class MURA_Dataset(object):
                     T.Resize(320),
                     T.CenterCrop(320),
                     T.ToTensor(),
-                    T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),  # 转换成3 channel
-                    T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+                    T.Lambda(lambda x: t.cat([x] * 3, 0)),  # 转换成3 channel
+                    T.Normalize(mean=MURA_MEAN, std=MURA_STD),
                 ])
 
     def __getitem__(self, index):
@@ -129,7 +130,7 @@ class MURAClass_Dataset(object):
                     T.RandomVerticalFlip(),
                     T.RandomRotation(30),
                     T.ToTensor(),
-                    T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),  # 转换成3 channel
+                    T.Lambda(lambda x: t.cat([x] * 3, 0)),  # 转换成3 channel
                     T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
                 ])
             if test:
@@ -138,7 +139,7 @@ class MURAClass_Dataset(object):
                     T.Resize(320),
                     T.CenterCrop(320),
                     T.ToTensor(),
-                    T.Lambda(lambda x: t.cat([x[0].unsqueeze(0), x[0].unsqueeze(0), x[0].unsqueeze(0)], 0)),  # 转换成3 channel
+                    T.Lambda(lambda x: t.cat([x] * 3, 0)),  # 转换成3 channel
                     T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
                 ])
 
@@ -189,9 +190,17 @@ class MURAClass_Dataset(object):
 if __name__ == "__main__":
     # from config import opt
     from tqdm import tqdm
-    train_data = MURAClass_Dataset('/DATA4_DB3/data/public/', '/DATA4_DB3/data/public/MURA-v1.1/train_image_paths.csv', part='all', train=True)
+    train_data = MURAClass_Dataset('/DATA4_DB3/data/public/', '/DATA4_DB3/data/public/MURA-v1.1/train_image_paths.csv', part='all', train=True, test=False)
+    # print(train_data.__len__())
+    train_dataloader = DataLoader(train_data, batch_size=8, shuffle=True, num_workers=4)
+    l = []
+    for ii, (data, label, body_part, _) in tqdm(enumerate(train_dataloader)):
+        l.append(data.squeeze())
+    x = t.cat(l, 0)
+    print(x.size())
+    print(x.mean(), x.std())
     # print(train_data[2][0].size())
-    print(train_data[0])
+    # print(train_data[0])
     # l = [x[0] for x in tqdm(train_data)]
     # x = t.cat(l, 0)
     # print(x.mean())

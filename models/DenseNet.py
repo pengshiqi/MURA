@@ -85,12 +85,61 @@ class MultiDenseNet169(BasicModule):
 
         self.features = nn.Sequential(*list(model.features.children()))
 
+        self.block1 = nn.Sequential(nn.Conv2d(1664, 1664, kernel_size=3, stride=1, padding=1, bias=False),
+                                    nn.BatchNorm2d(1664),
+                                    nn.ReLU(inplace=True),
+                                    nn.Conv2d(1664, 1664, kernel_size=3, stride=1, padding=1, bias=False),
+                                    nn.BatchNorm2d(1664),
+                                    nn.ReLU(inplace=True))
+
+        self.block2 = nn.Sequential(nn.Conv2d(1664, 1664, kernel_size=3, stride=1, padding=1, bias=False),
+                                    nn.BatchNorm2d(1664),
+                                    nn.ReLU(inplace=True),
+                                    nn.Conv2d(1664, 1664, kernel_size=3, stride=1, padding=1, bias=False),
+                                    nn.BatchNorm2d(1664),
+                                    nn.ReLU(inplace=True))
+
+        self.block3 = nn.Sequential(nn.Conv2d(1664, 1664, kernel_size=3, stride=1, padding=1, bias=False),
+                                    nn.BatchNorm2d(1664),
+                                    nn.ReLU(inplace=True),
+                                    nn.Conv2d(1664, 1664, kernel_size=3, stride=1, padding=1, bias=False),
+                                    nn.BatchNorm2d(1664),
+                                    nn.ReLU(inplace=True))
+
+        self.block4 = nn.Sequential(nn.Conv2d(1664, 1664, kernel_size=3, stride=1, padding=1, bias=False),
+                                    nn.BatchNorm2d(1664),
+                                    nn.ReLU(inplace=True),
+                                    nn.Conv2d(1664, 1664, kernel_size=3, stride=1, padding=1, bias=False),
+                                    nn.BatchNorm2d(1664),
+                                    nn.ReLU(inplace=True))
+
+        self.block5 = nn.Sequential(nn.Conv2d(1664, 1664, kernel_size=3, stride=1, padding=1, bias=False),
+                                    nn.BatchNorm2d(1664),
+                                    nn.ReLU(inplace=True),
+                                    nn.Conv2d(1664, 1664, kernel_size=3, stride=1, padding=1, bias=False),
+                                    nn.BatchNorm2d(1664),
+                                    nn.ReLU(inplace=True))
+
+        self.block6 = nn.Sequential(nn.Conv2d(1664, 1664, kernel_size=3, stride=1, padding=1, bias=False),
+                                    nn.BatchNorm2d(1664),
+                                    nn.ReLU(inplace=True),
+                                    nn.Conv2d(1664, 1664, kernel_size=3, stride=1, padding=1, bias=False),
+                                    nn.BatchNorm2d(1664),
+                                    nn.ReLU(inplace=True))
+
+        self.block7 = nn.Sequential(nn.Conv2d(1664, 1664, kernel_size=3, stride=1, padding=1, bias=False),
+                                    nn.BatchNorm2d(1664),
+                                    nn.ReLU(inplace=True),
+                                    nn.Conv2d(1664, 1664, kernel_size=3, stride=1, padding=1, bias=False),
+                                    nn.BatchNorm2d(1664),
+                                    nn.ReLU(inplace=True))
+
         self.ada_pooling1 = nn.AdaptiveAvgPool2d((1, 1))
         self.ada_pooling2 = nn.AdaptiveAvgPool2d((2, 2))
         self.ada_pooling3 = nn.AdaptiveAvgPool2d((3, 3))
         self.ada_pooling4 = nn.AdaptiveAvgPool2d((4, 4))
 
-        self.classifier1 = nn.Linear(30 * 1664, num_classes)
+        self.classifier1 = nn.Linear(30 * 1664, num_classes)   # 30 = 1*1 + 2*2 + 3*3 + 4*4
         self.classifier2 = nn.Linear(30 * 1664, num_classes)
         self.classifier3 = nn.Linear(30 * 1664, num_classes)
         self.classifier4 = nn.Linear(30 * 1664, num_classes)
@@ -101,37 +150,80 @@ class MultiDenseNet169(BasicModule):
     def forward(self, x, body_part):
         features = self.features(x)
         out = F.relu(features, inplace=True)
-        out1 = self.ada_pooling1(out).view(features.size(0), -1)
-        out2 = self.ada_pooling2(out).view(features.size(0), -1)
-        out3 = self.ada_pooling3(out).view(features.size(0), -1)
-        out4 = self.ada_pooling4(out).view(features.size(0), -1)
-        out = t.cat([out1, out2, out3, out4], 1)
-
         final_out = []
         for f, bp in zip(out, body_part):
             if int(bp) == 1:
-                result = self.classifier1(f)
+                result = self.block1(t.unsqueeze(f, 0))
+                result1 = self.ada_pooling1(result).view(result.size(0), -1)
+                result2 = self.ada_pooling2(result).view(result.size(0), -1)
+                result3 = self.ada_pooling3(result).view(result.size(0), -1)
+                result4 = self.ada_pooling4(result).view(result.size(0), -1)
+                result = t.cat([result1, result2, result3, result4], 1)
+                result = self.classifier1(result)
             elif int(bp) == 2:
-                result = self.classifier2(f)
+                result = self.block2(t.unsqueeze(f, 0))
+                result1 = self.ada_pooling1(result).view(result.size(0), -1)
+                result2 = self.ada_pooling2(result).view(result.size(0), -1)
+                result3 = self.ada_pooling3(result).view(result.size(0), -1)
+                result4 = self.ada_pooling4(result).view(result.size(0), -1)
+                result = t.cat([result1, result2, result3, result4], 1)
+                result = self.classifier2(result)
             elif int(bp) == 3:
-                result = self.classifier3(f)
+                result = self.block3(t.unsqueeze(f, 0))
+                result1 = self.ada_pooling1(result).view(result.size(0), -1)
+                result2 = self.ada_pooling2(result).view(result.size(0), -1)
+                result3 = self.ada_pooling3(result).view(result.size(0), -1)
+                result4 = self.ada_pooling4(result).view(result.size(0), -1)
+                result = t.cat([result1, result2, result3, result4], 1)
+                result = self.classifier3(result)
             elif int(bp) == 4:
-                result = self.classifier4(f)
+                result = self.block4(t.unsqueeze(f, 0))
+                result1 = self.ada_pooling1(result).view(result.size(0), -1)
+                result2 = self.ada_pooling2(result).view(result.size(0), -1)
+                result3 = self.ada_pooling3(result).view(result.size(0), -1)
+                result4 = self.ada_pooling4(result).view(result.size(0), -1)
+                result = t.cat([result1, result2, result3, result4], 1)
+                result = self.classifier4(result)
             elif int(bp) == 5:
-                result = self.classifier5(f)
+                result = self.block5(t.unsqueeze(f, 0))
+                result1 = self.ada_pooling1(result).view(result.size(0), -1)
+                result2 = self.ada_pooling2(result).view(result.size(0), -1)
+                result3 = self.ada_pooling3(result).view(result.size(0), -1)
+                result4 = self.ada_pooling4(result).view(result.size(0), -1)
+                result = t.cat([result1, result2, result3, result4], 1)
+                result = self.classifier5(result)
             elif int(bp) == 6:
-                result = self.classifier6(f)
+                result = self.block6(t.unsqueeze(f, 0))
+                result1 = self.ada_pooling1(result).view(result.size(0), -1)
+                result2 = self.ada_pooling2(result).view(result.size(0), -1)
+                result3 = self.ada_pooling3(result).view(result.size(0), -1)
+                result4 = self.ada_pooling4(result).view(result.size(0), -1)
+                result = t.cat([result1, result2, result3, result4], 1)
+                result = self.classifier6(result)
             elif int(bp) == 7:
-                result = self.classifier7(f)
+                result = self.block7(t.unsqueeze(f, 0))
+                result1 = self.ada_pooling1(result).view(result.size(0), -1)
+                result2 = self.ada_pooling2(result).view(result.size(0), -1)
+                result3 = self.ada_pooling3(result).view(result.size(0), -1)
+                result4 = self.ada_pooling4(result).view(result.size(0), -1)
+                result = t.cat([result1, result2, result3, result4], 1)
+                result = self.classifier7(result)
             else:
                 print('Error Index:', body_part)
                 raise IndexError
-            final_out.append(result)
+            final_out.append(result.squeeze_(0))
         final_out = t.stack(final_out)
         return final_out
 
     def get_config_optim(self, lr, lr_pre):
         return [{'params': self.features.parameters(), 'lr': lr_pre},
+                {'params': self.block1.parameters()},
+                {'params': self.block2.parameters()},
+                {'params': self.block3.parameters()},
+                {'params': self.block4.parameters()},
+                {'params': self.block5.parameters()},
+                {'params': self.block6.parameters()},
+                {'params': self.block7.parameters()},
                 {'params': self.ada_pooling1.parameters()},
                 {'params': self.ada_pooling2.parameters()},
                 {'params': self.ada_pooling3.parameters()},

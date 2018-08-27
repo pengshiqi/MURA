@@ -5,6 +5,7 @@ import torch as t
 import numpy as np
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
+from torch import nn
 from torchnet import meter
 from tqdm import tqdm
 from sklearn.metrics import cohen_kappa_score#, confusion_matrix
@@ -13,21 +14,27 @@ import time
 from config import opt
 from utils import Visualizer
 from dataset import MURA_Dataset, MURAClass_Dataset
-from models import DenseNet169, CustomDenseNet169, MultiDenseNet169
+from models import DenseNet169, CustomDenseNet169, MultiDenseNet169, ResNet152, MultiResolutionNet
+from pprint import pprint
 
 
 def train(**kwargs):
     opt.parse(kwargs)
-    vis = Visualizer(opt.env)
+    vis = Visualizer(port=2333, env=opt.env)
 
     # step 1: configure model
     # model = CustomDenseNet169(num_classes=2)
-    model = MultiDenseNet169(num_classes=2)
+    # model = MultiDenseNet169(num_classes=2)
+    # model = ResNet152(num_classes=2)
+    model = MultiResolutionNet(num_classes=2)
 
     if opt.load_model_path:
         model.load(opt.load_model_path)
     if opt.use_gpu:
         model.cuda()
+    if opt.parallel:
+        model = nn.DataParallel(model, device_ids=[x for x in range(opt.num_of_gpu)])
+    # print(model)
 
     model.train()
 
@@ -53,7 +60,10 @@ def train(**kwargs):
     criterion = t.nn.CrossEntropyLoss(weight=weight)
     lr = opt.lr
     # optimizer = t.optim.Adam(model.parameters(), lr=lr, weight_decay=opt.weight_decay)
-    optimizer = t.optim.Adam(model.get_config_optim(opt.lr, opt.lr_pre), lr=lr, weight_decay=opt.weight_decay)
+    if opt.parallel:
+        optimizer = t.optim.Adam(model.module.get_config_optim(opt.lr, opt.lr_pre), lr=lr, weight_decay=opt.weight_decay)
+    else:
+        optimizer = t.optim.Adam(model.get_config_optim(opt.lr, opt.lr_pre), lr=lr, weight_decay=opt.weight_decay)
 
     # step 4: meters
     loss_meter = meter.AverageValueMeter()
@@ -62,21 +72,19 @@ def train(**kwargs):
     previous_acc = 0
 
     # step 5: train
-
-    if not os.path.exists(os.path.join('checkpoints', model.model_name)):
-        os.mkdir(os.path.join('checkpoints', model.model_name))
-    # prefix = time.strftime('%m%d%H%M')
-    # if not os.path.exists(os.path.join('checkpoints', model.model_name, prefix)):
-    #     os.mkdir(os.path.join('checkpoints', model.model_name, prefix))
+    if opt.parallel:
+        if not os.path.exists(os.path.join('checkpoints', model.module.model_name)):
+            os.mkdir(os.path.join('checkpoints', model.module.model_name))
+    else:
+        if not os.path.exists(os.path.join('checkpoints', model.model_name)):
+            os.mkdir(os.path.join('checkpoints', model.model_name))
 
     s = t.nn.Softmax()
     for epoch in range(opt.max_epoch):
-
         loss_meter.reset()
         confusion_matrix.reset()
 
         for ii, (data, label, body_part, _) in tqdm(enumerate(train_dataloader)):
-
             # train model
             input = Variable(data)
             target = Variable(label)
@@ -87,8 +95,9 @@ def train(**kwargs):
                 body_part = body_part.cuda()
 
             optimizer.zero_grad()
-            score = model(input, body_part)
-            # score = model(input)
+            score = model(input)
+            # score = model(input, body_part)
+
             loss = criterion(score, target)
             loss.backward()
             optimizer.step()
@@ -110,20 +119,20 @@ def train(**kwargs):
         val_cm, val_accuracy, val_loss = val(model, val_dataloader)
 
         if val_accuracy > previous_acc:
-            # ck_name = str(opt) + "&" + str(epoch) + ".pth"\
-            # model.save(os.path.join('checkpoints', model.model_name, prefix, ck_name))
-            ck_name = model.model_name + '_best_model.pth'
-            model.save(os.path.join('checkpoints', model.model_name, ck_name))
+            if opt.parallel:
+                ck_name = model.module.model_name + '_best_model.pth'
+                model.module.save(os.path.join('checkpoints', model.module.model_name, ck_name))
+            else:
+                ck_name = model.model_name + '_best_model.pth'
+                model.save(os.path.join('checkpoints', model.model_name, ck_name))
             previous_acc = val_accuracy
 
         vis.plot('val_accuracy', val_accuracy)
-        print('val_accuracy', val_accuracy)
         vis.log("epoch:{epoch},lr:{lr},loss:{loss},train_cm:{train_cm},val_cm:{val_cm}".format(
-            epoch=epoch, loss=loss_meter.value()[0], val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()),
-            lr=lr))
+            epoch=epoch, loss=loss_meter.value()[0], val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()), lr=lr))
+        print('val_accuracy', val_accuracy)
         print("epoch:{epoch},lr:{lr},loss:{loss},val_loss:{val_loss},train_cm:{train_cm},val_cm:{val_cm}".format(
-            epoch=epoch, loss=loss_meter.value()[0], val_loss=val_loss, val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()),
-            lr=lr))
+            epoch=epoch, loss=loss_meter.value()[0], val_loss=val_loss, val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()), lr=lr))
 
         # update learning rate
         # if loss_meter.value()[0] > previous_loss:
@@ -156,8 +165,8 @@ def val(model, dataloader):
             val_input = val_input.cuda()
             target = target.cuda()
             body_part = body_part.cuda()
-        score = model(val_input, body_part)
-        # score = model(val_input)
+        # score = model(val_input, body_part)
+        score = model(val_input)
         # confusion_matrix.add(s(Variable(score.data.squeeze())).data, label.type(t.LongTensor)) # original used
         confusion_matrix.add(s(Variable(score.data)).data, label.type(t.LongTensor))  # use for separate body part
         loss = criterion(score, target)
@@ -177,7 +186,9 @@ def test(**kwargs):
     # configure model
     # model = DenseNet169(num_classes=2)
     # model = CustomDenseNet169(num_classes=2)
-    model = MultiDenseNet169(num_classes=2)
+    # model = MultiDenseNet169(num_classes=2)
+    model = ResNet152(num_classes=2)
+
     if opt.load_model_path:
         model.load(opt.load_model_path)
     if opt.use_gpu:
@@ -198,8 +209,8 @@ def test(**kwargs):
         input = Variable(data, volatile=True)
         if opt.use_gpu:
             input = input.cuda()
-        score = model(input, body_part)
-        # score = model(input)
+        # score = model(input, body_part)
+        score = model(input)
 
         confusion_matrix.add(s(Variable(score.data.squeeze())).data, label.type(t.LongTensor))
 
