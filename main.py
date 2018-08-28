@@ -1,47 +1,29 @@
 # -*- coding: utf-8 -*-
 
 import os
+import time
 import torch as t
 import numpy as np
+
+from pprint import pprint
+from tqdm import tqdm
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
-from torch import nn
+from torch.nn import functional
 from torchnet import meter
-from tqdm import tqdm
-from sklearn.metrics import cohen_kappa_score#, confusion_matrix
-import time
+from sklearn.metrics import cohen_kappa_score
 
 from config import opt
 from utils import Visualizer
 from dataset import MURA_Dataset, MURAClass_Dataset
 from models import DenseNet169, CustomDenseNet169, MultiDenseNet169, ResNet152, MultiResolutionNet
-from pprint import pprint
 
 
 def train(**kwargs):
     opt.parse(kwargs)
     vis = Visualizer(port=2333, env=opt.env)
 
-    # step 1: configure model
-    # model = CustomDenseNet169(num_classes=2)
-    # model = MultiDenseNet169(num_classes=2)
-    # model = ResNet152(num_classes=2)
-    model = MultiResolutionNet(num_classes=2)
-
-    if opt.load_model_path:
-        model.load(opt.load_model_path)
-    if opt.use_gpu:
-        model.cuda()
-    if opt.parallel:
-        model = nn.DataParallel(model, device_ids=[x for x in range(opt.num_of_gpu)])
-    # print(model)
-
-    model.train()
-
-    # step 2: data
-    # train_data = MURA_Dataset(opt.data_root, opt.train_image_paths, train=True)
-    # val_data = MURA_Dataset(opt.data_root, opt.test_image_paths, test=True)
-
+    # step 1: data
     train_data = MURAClass_Dataset(opt.data_root, opt.train_image_paths, 'all', train=True, test=False)
     val_data = MURAClass_Dataset(opt.data_root, opt.test_image_paths, 'all', train=False, test=True)
     print('Training images:', train_data.__len__(), 'Validation images:', val_data.__len__())
@@ -49,26 +31,43 @@ def train(**kwargs):
     train_dataloader = DataLoader(train_data, batch_size=opt.batch_size, shuffle=True, num_workers=opt.num_workers)
     val_dataloader = DataLoader(val_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
 
-    # step 3: criterion and optimizer
-    A = 21935
-    N = 14873
+    # step 2: configure model
+    # model = CustomDenseNet169(num_classes=2)
+    # model = MultiDenseNet169(num_classes=2)
+    model = ResNet152(num_classes=2)
+    # model = MultiResolutionNet(num_classes=2)
 
-    weight = t.Tensor([A / (A + N), N / (A + N)])
+    if opt.load_model_path:
+        model.load(opt.load_model_path)
+    if opt.use_gpu:
+        model.cuda()
+    if opt.parallel:
+        model = t.nn.DataParallel(model, device_ids=[x for x in range(opt.num_of_gpu)])
+    # print(model)
+
+    model.train()
+
+    # step 3: criterion and optimizer
+    N = 21935
+    P = 14873
+    weight = t.Tensor([P/(P+N), N/(P+N)])
     if opt.use_gpu:
         weight = weight.cuda()
 
     criterion = t.nn.CrossEntropyLoss(weight=weight)
     lr = opt.lr
-    # optimizer = t.optim.Adam(model.parameters(), lr=lr, weight_decay=opt.weight_decay)
     if opt.parallel:
-        optimizer = t.optim.Adam(model.module.get_config_optim(opt.lr, opt.lr_pre), lr=lr, weight_decay=opt.weight_decay)
+        # optimizer = t.optim.Adam(model.module.get_config_optim(opt.lr, opt.lr_pre), lr=lr, weight_decay=opt.weight_decay)
+        optimizer = t.optim.Adam(model.parameters(), lr=lr, weight_decay=opt.weight_decay)
     else:
-        optimizer = t.optim.Adam(model.get_config_optim(opt.lr, opt.lr_pre), lr=lr, weight_decay=opt.weight_decay)
+        # optimizer = t.optim.Adam(model.get_config_optim(opt.lr, opt.lr_pre), lr=lr, weight_decay=opt.weight_decay)
+        optimizer = t.optim.Adam(model.parameters(), lr=lr, weight_decay=opt.weight_decay)
 
     # step 4: meters
+    softmax = functional.softmax
     loss_meter = meter.AverageValueMeter()
-    confusion_matrix = meter.ConfusionMeter(2)
-    previous_loss = 1e100
+    train_cm = meter.ConfusionMeter(2)
+    previous_loss = 100
     previous_acc = 0
 
     # step 5: train
@@ -79,34 +78,33 @@ def train(**kwargs):
         if not os.path.exists(os.path.join('checkpoints', model.model_name)):
             os.mkdir(os.path.join('checkpoints', model.model_name))
 
-    s = t.nn.Softmax()
     for epoch in range(opt.max_epoch):
         loss_meter.reset()
-        confusion_matrix.reset()
+        train_cm.reset()
 
-        for ii, (data, label, body_part, _) in tqdm(enumerate(train_dataloader)):
+        for i, (image, label, body_part, image_path) in tqdm(enumerate(train_dataloader)):
             # train model
-            input = Variable(data)
+            img = Variable(image)
             target = Variable(label)
             body_part = Variable(body_part)
             if opt.use_gpu:
-                input = input.cuda()
+                img = img.cuda()
                 target = target.cuda()
                 body_part = body_part.cuda()
 
-            optimizer.zero_grad()
-            score = model(input)
+            score = model(img)
             # score = model(input, body_part)
 
+            optimizer.zero_grad()
             loss = criterion(score, target)
             loss.backward()
             optimizer.step()
 
             # meters update and visualize
             loss_meter.add(loss.data[0])
-            confusion_matrix.add(s(Variable(score.data)).data, target.data)
+            train_cm.add(softmax(score, dim=1).data, target.data)
 
-            if ii % opt.print_freq == opt.print_freq - 1:
+            if i % opt.print_freq == opt.print_freq - 1:
                 vis.plot('loss', loss_meter.value()[0])
                 print('loss', loss_meter.value()[0])
 
@@ -115,34 +113,40 @@ def train(**kwargs):
                     import ipdb
                     ipdb.set_trace()
 
-        # validate and visualize
+        # print results
+        train_accuracy = 100. * (train_cm.value()[0][0] + train_cm.value()[1][1]) / train_cm.value().sum()
         val_cm, val_accuracy, val_loss = val(model, val_dataloader)
 
         if val_accuracy > previous_acc:
             if opt.parallel:
-                ck_name = model.module.model_name + '_best_model.pth'
-                model.module.save(os.path.join('checkpoints', model.module.model_name, ck_name))
+                model.module.save(os.path.join('checkpoints', model.module.model_name, model.module.model_name + '_best_model.pth'))
             else:
-                ck_name = model.model_name + '_best_model.pth'
-                model.save(os.path.join('checkpoints', model.model_name, ck_name))
+                model.save(os.path.join('checkpoints', model.model_name, model.model_name + '_best_model.pth'))
+            print('Best Model Saved!')
             previous_acc = val_accuracy
 
-        vis.plot('val_accuracy', val_accuracy)
-        vis.log("epoch:{epoch},lr:{lr},loss:{loss},train_cm:{train_cm},val_cm:{val_cm}".format(
-            epoch=epoch, loss=loss_meter.value()[0], val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()), lr=lr))
-        print('val_accuracy', val_accuracy)
-        print("epoch:{epoch},lr:{lr},loss:{loss},val_loss:{val_loss},train_cm:{train_cm},val_cm:{val_cm}".format(
-            epoch=epoch, loss=loss_meter.value()[0], val_loss=val_loss, val_cm=str(val_cm.value()), train_cm=str(confusion_matrix.value()), lr=lr))
+        vis.plot_many({'train_accuracy': train_accuracy, 'val_accuracy': val_accuracy})
+        vis.log("epoch: [{epoch}/{total_epoch}], lr: {lr}, loss: {loss}".format(
+            epoch=epoch+1, total_epoch=opt.max_epoch, lr=lr, loss=loss_meter.value()[0]))
+        vis.log('train_cm:')
+        vis.log(train_cm.value())
+        vis.log('val_cm:')
+        vis.log(val_cm.value())
+        print('train_accuracy:', train_accuracy, 'val_accuracy:', val_accuracy)
+        print("epoch: [{epoch}/{total_epoch}], lr:{lr}, loss:{loss}".format(
+            epoch=epoch+1, total_epoch=opt.max_epoch, lr=lr, loss=loss_meter.value()[0]))
+        print('train_cm:')
+        print(train_cm.value())
+        print('val_cm:')
+        print(val_cm.value())
 
         # update learning rate
-        # if loss_meter.value()[0] > previous_loss:
-        if val_loss > previous_loss:
+        if loss_meter.value()[0] > previous_loss:
             lr = lr * opt.lr_decay
             # 第二种降低学习率的方法:不会有moment等信息的丢失
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr
-
-        previous_loss = val_loss
+        previous_loss = loss_meter.value()[0]
 
 
 def val(model, dataloader):
@@ -150,83 +154,84 @@ def val(model, dataloader):
     计算模型在验证集上的准确率等信息
     """
     model.eval()
-    confusion_matrix = meter.ConfusionMeter(2)
-    s = t.nn.Softmax()
+    val_cm = meter.ConfusionMeter(2)
+    softmax = functional.softmax
 
     criterion = t.nn.CrossEntropyLoss()
     loss_meter = meter.AverageValueMeter()
 
-    for ii, data in tqdm(enumerate(dataloader)):
-        input, label, body_part, _ = data
-        val_input = Variable(input, volatile=True)
+    for i, (image, label, body_part, image_path) in tqdm(enumerate(dataloader)):
+        img = Variable(image, volatile=True)
         target = Variable(label)
         body_part = Variable(body_part)
         if opt.use_gpu:
-            val_input = val_input.cuda()
+            img = img.cuda()
             target = target.cuda()
             body_part = body_part.cuda()
+
         # score = model(val_input, body_part)
-        score = model(val_input)
-        # confusion_matrix.add(s(Variable(score.data.squeeze())).data, label.type(t.LongTensor)) # original used
-        confusion_matrix.add(s(Variable(score.data)).data, label.type(t.LongTensor))  # use for separate body part
+        score = model(img)
+
         loss = criterion(score, target)
         loss_meter.add(loss.data[0])
+        val_cm.add(softmax(score, dim=1).data, target.data)  # use for separate body part
+        # confusion_matrix.add(s(Variable(score.data.squeeze())).data, label.type(t.LongTensor)) # original used
 
     model.train()
-    cm_value = confusion_matrix.value()
-    accuracy = 100. * (cm_value[0][0] + cm_value[1][1]) / (cm_value.sum())
-    loss = loss_meter.value()[0]
+    val_accuracy = 100. * (val_cm.value()[0][0] + val_cm.value()[1][1]) / (val_cm.value().sum())
 
-    return confusion_matrix, accuracy, loss
+    return val_cm, val_accuracy, loss_meter.value()[0]
 
 
 def test(**kwargs):
     opt.parse(kwargs)
-
-    # configure model
-    # model = DenseNet169(num_classes=2)
-    # model = CustomDenseNet169(num_classes=2)
-    # model = MultiDenseNet169(num_classes=2)
-    model = ResNet152(num_classes=2)
-
-    if opt.load_model_path:
-        model.load(opt.load_model_path)
-    if opt.use_gpu:
-        model.cuda()
-
-    model.eval()
 
     # data
     # test_data = MURA_Dataset(opt.data_root, opt.test_image_paths, test=True)
     test_data = MURAClass_Dataset(opt.data_root, opt.test_image_paths, 'all', train=False, test=True)
     test_dataloader = DataLoader(test_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
 
+    # configure model
+    # model = DenseNet169(num_classes=2)
+    # model = CustomDenseNet169(num_classes=2)
+    # model = MultiDenseNet169(num_classes=2)
+    model = ResNet152(num_classes=2)
+    # model = MultiResolutionNet(num_classes=2)
+
+    if opt.load_model_path:
+        model.load(opt.load_model_path)
+    if opt.use_gpu:
+        model.cuda()
+    model.eval()
+
+    test_cm = meter.ConfusionMeter(2)
+    softmax = functional.softmax
     results = []
-    confusion_matrix = meter.ConfusionMeter(2)
-    s = t.nn.Softmax()
 
-    for ii, (data, label, body_part, path) in tqdm(enumerate(test_dataloader)):
-        input = Variable(data, volatile=True)
+    for ii, (image, label, body_part, image_path) in tqdm(enumerate(test_dataloader)):
+        img = Variable(image, volatile=True)
+        target = Variable(label)
         if opt.use_gpu:
-            input = input.cuda()
+            img = img.cuda()
+            target = target.cuda()
+
         # score = model(input, body_part)
-        score = model(input)
+        score = model(img)
 
-        confusion_matrix.add(s(Variable(score.data.squeeze())).data, label.type(t.LongTensor))
+        test_cm.add(softmax(score, dim=1).data, target.data)
 
-        probability = t.nn.functional.softmax(score)[:, 0].data.tolist()
+        probability = softmax(score, dim=1)[:, 0].data.tolist()
         # label = score.max(dim = 1)[1].data.tolist()
 
         # 每一行为 图片路径 和 positive的概率
-        batch_results = [(path_, probability_) for path_, probability_ in zip(path, probability)]
+        batch_results = [(path_, probability_) for path_, probability_ in zip(image_path, probability)]
 
         results += batch_results
 
-    cm_value = confusion_matrix.value()
-    accuracy = 100. * (cm_value[0][0] + cm_value[1][1]) / (cm_value.sum())
+    accuracy = 100. * (test_cm.value()[0][0] + test_cm.value()[1][1]) / (test_cm.value().sum())
 
     print('confusion matrix: ')
-    print(cm_value)
+    print(test_cm.value())
     print(f'accuracy: {accuracy}')
 
     write_csv(results, opt.result_file)

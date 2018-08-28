@@ -16,7 +16,7 @@ class Config(object):
     # load_model_path = '/DB/rhome/bllai/PyTorchProjects/MURA/checkpoints/CustomDenseNet169/CustomDenseNet169_best_model.pth'
     load_model_path = None
 
-    batch_size = 32                       # batchsize
+    batch_size = 16                       # batchsize
     num_workers = 4                       # how many workers for loading data
     print_freq = 50                       # print info every N batch
 

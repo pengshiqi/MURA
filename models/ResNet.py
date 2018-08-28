@@ -2,10 +2,9 @@
 
 import torch as t
 import numpy as np
+
 from torch import nn
-from torch.nn import functional as F
 from torchvision import models
-from torch.autograd import Variable
 
 from .BasicModule import BasicModule
 

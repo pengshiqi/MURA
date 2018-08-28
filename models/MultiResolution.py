@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import copy
 import torch as t
 import numpy as np
-import copy
 
 from torch import nn
-from torch.nn import functional as F
 from torchvision import models
-from torch.autograd import Variable
 
 from .BasicModule import BasicModule
 
@@ -37,42 +35,41 @@ class MultiResolutionNet(BasicModule):
         self.reslayer3 = res152.layer3
         self.reslayer4 = res152.layer4
 
-        self.densblock1_1 = dense169.features.denseblock2
-        self.densblock1_2 = dense169.features.denseblock3
-        self.densblock1_3 = dense169.features.denseblock4
-
-        self.densblock2_1 = copy.deepcopy(dense169.features.denseblock2)
-        self.densblock2_2 = copy.deepcopy(dense169.features.denseblock3)
-        self.densblock2_3 = copy.deepcopy(dense169.features.denseblock4)
-
-        self.densblock3_1 = copy.deepcopy(dense169.features.denseblock2)
-        self.densblock3_2 = copy.deepcopy(dense169.features.denseblock3)
-        self.densblock3_3 = copy.deepcopy(dense169.features.denseblock4)
-
-        self.trans1_1 = self.translayer(256, 128)
-        self.trans1_2 = self.translayer(1664 + 512, 256)
-        self.trans1_3 = self.translayer(1280, 640)
-
-        self.trans2_1 = self.translayer(512, 128)
-        self.trans2_2 = self.translayer(1664 + 512, 256)
-        self.trans2_3 = self.translayer(1280, 640)
-
-        self.trans3_1 = self.translayer(1024, 128)
-        self.trans3_2 = self.translayer(2048 + 512, 256)
-        self.trans3_3 = self.translayer(1280, 640)
-
-        self.trans_final = self.translayer(1664, 2)
-
-        self.upsample1 = nn.Upsample(scale_factor=2, mode='bilinear')
-        self.upsample2 = nn.Upsample(scale_factor=2, mode='bilinear')
-        self.upsample3 = nn.Upsample(scale_factor=2, mode='bilinear')
+        # self.densblock1_1 = dense169.features.denseblock2
+        # self.densblock1_2 = dense169.features.denseblock3
+        # self.densblock1_3 = dense169.features.denseblock4
+        #
+        # self.densblock2_1 = copy.deepcopy(dense169.features.denseblock2)
+        # self.densblock2_2 = copy.deepcopy(dense169.features.denseblock3)
+        # self.densblock2_3 = copy.deepcopy(dense169.features.denseblock4)
+        #
+        # self.densblock3_1 = copy.deepcopy(dense169.features.denseblock2)
+        # self.densblock3_2 = copy.deepcopy(dense169.features.denseblock3)
+        # self.densblock3_3 = copy.deepcopy(dense169.features.denseblock4)
+        #
+        # self.trans1_1 = self.translayer(256, 128)
+        # self.trans1_2 = self.translayer(1664 + 512, 256)
+        # self.trans1_3 = self.translayer(1280, 640)
+        #
+        # self.trans2_1 = self.translayer(512, 128)
+        # self.trans2_2 = self.translayer(1664 + 512, 256)
+        # self.trans2_3 = self.translayer(1280, 640)
+        #
+        # self.trans3_1 = self.translayer(1024, 128)
+        # self.trans3_2 = self.translayer(2048 + 512, 256)
+        # self.trans3_3 = self.translayer(1280, 640)
+        #
+        # self.trans_final = self.translayer(1664, 2)
+        #
+        # self.upsample1 = nn.Upsample(scale_factor=2, mode='bilinear')
+        # self.upsample2 = nn.Upsample(scale_factor=2, mode='bilinear')
+        # self.upsample3 = nn.Upsample(scale_factor=2, mode='bilinear')
 
         self.ada_pooling = nn.AdaptiveAvgPool2d((1, 1))
 
-        # self.classifier = nn.Linear(2048, num_classes)
+        self.classifier = nn.Linear(2048, num_classes)
 
     def forward(self, x):
-        # print('input', x.size())
         out = self.prenet(x)
         # print('prenet', out.size())
         res_out_1 = self.reslayer1(out)
@@ -84,37 +81,39 @@ class MultiResolutionNet(BasicModule):
         res_out_4 = self.reslayer4(res_out_3)
         # print('reslayer4', res_out_4.size())
 
-        dense_out_1 = self.densblock1_1(self.trans1_1(res_out_1))
-        dense_out_2 = self.densblock2_1(self.trans2_1(res_out_2))
-        dense_out_3 = self.densblock3_1(self.trans3_1(res_out_3))
-        # print('dense1', dense_out_1.size())
-        # print('dense2', dense_out_2.size())
-        # print('dense3', dense_out_3.size())
-
-        up4to3 = self.upsample3(res_out_4)
-        # print('up4to3', up4to3.size())
-        dense_out_3 = t.cat([dense_out_3, up4to3], 1)
-        dense_out_3 = self.densblock3_2(self.trans3_2(dense_out_3))
-        dense_out_3 = self.densblock3_3(self.trans3_3(dense_out_3))
-        # print('dense_out_3', dense_out_3.size())
-
-        up3to2 = self.upsample2(dense_out_3)
-        # print('up3to2', up3to2.size())
-        dense_out_2 = t.cat([dense_out_2, up3to2], 1)
-        dense_out_2 = self.densblock2_2(self.trans2_2(dense_out_2))
-        dense_out_2 = self.densblock2_3(self.trans2_3(dense_out_2))
-        # print('dense_out_2', dense_out_2.size())
-
-        up2to1 = self.upsample1(dense_out_2)
-        # print('up2to1', up2to1.size())
-        dense_out_1 = t.cat([dense_out_1, up2to1], 1)
-        dense_out_1 = self.densblock1_2(self.trans1_2(dense_out_1))
-        dense_out_1 = self.densblock1_3(self.trans1_3(dense_out_1))
-        # print('dense_out_1', dense_out_1.size())
-
-        out = F.sigmoid(self.trans_final(dense_out_1))
-        out = self.ada_pooling(out).view(out.size(0), -1)
-        # print('adapooling', out.size())
+        # dense_out_1 = self.densblock1_1(self.trans1_1(res_out_1))
+        # dense_out_2 = self.densblock2_1(self.trans2_1(res_out_2))
+        # dense_out_3 = self.densblock3_1(self.trans3_1(res_out_3))
+        # # print('dense1', dense_out_1.size())
+        # # print('dense2', dense_out_2.size())
+        # # print('dense3', dense_out_3.size())
+        #
+        # up4to3 = self.upsample3(res_out_4)
+        # # print('up4to3', up4to3.size())
+        # dense_out_3 = t.cat([dense_out_3, up4to3], 1)
+        # dense_out_3 = self.densblock3_2(self.trans3_2(dense_out_3))
+        # dense_out_3 = self.densblock3_3(self.trans3_3(dense_out_3))
+        # # print('dense_out_3', dense_out_3.size())
+        #
+        # up3to2 = self.upsample2(dense_out_3)
+        # # print('up3to2', up3to2.size())
+        # dense_out_2 = t.cat([dense_out_2, up3to2], 1)
+        # dense_out_2 = self.densblock2_2(self.trans2_2(dense_out_2))
+        # dense_out_2 = self.densblock2_3(self.trans2_3(dense_out_2))
+        # # print('dense_out_2', dense_out_2.size())
+        #
+        # up2to1 = self.upsample1(dense_out_2)
+        # # print('up2to1', up2to1.size())
+        # dense_out_1 = t.cat([dense_out_1, up2to1], 1)
+        # dense_out_1 = self.densblock1_2(self.trans1_2(dense_out_1))
+        # dense_out_1 = self.densblock1_3(self.trans1_3(dense_out_1))
+        # # print('dense_out_1', dense_out_1.size())
+        #
+        # out = F.sigmoid(self.trans_final(dense_out_1))
+        # out = self.ada_pooling(out).view(out.size(0), -1)
+        # # print('adapooling', out.size())
+        out = self.ada_pooling(res_out_4).view(res_out_4.size(0), -1)
+        out = self.classifier(out)
 
         return out
 

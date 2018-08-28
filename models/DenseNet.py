@@ -2,10 +2,10 @@
 
 import torch as t
 import numpy as np
+
 from torch import nn
-from torch.nn import functional as F
+from torch.nn import functional
 from torchvision import models
-from torch.autograd import Variable
 
 from .BasicModule import BasicModule
 
@@ -27,7 +27,7 @@ class DenseNet169(BasicModule):
 
     def forward(self, x):
         features = self.features(x)
-        out = F.relu(features, inplace=True)
+        out = functional.relu(features, inplace=True)
         out = self.ada_pooling(out).view(features.size(0), -1)
         out = self.classifier(out)
         return out
@@ -56,7 +56,7 @@ class CustomDenseNet169(BasicModule):
 
     def forward(self, x):
         features = self.features(x)
-        out = F.relu(features, inplace=True)
+        out = functional.relu(features, inplace=True)
         # out = F.avg_pool2d(out, kernel_size=7, stride=1).view(features.size(0), -1)
         out1 = self.ada_pooling1(out).view(features.size(0), -1)
         out2 = self.ada_pooling2(out).view(features.size(0), -1)
@@ -149,7 +149,7 @@ class MultiDenseNet169(BasicModule):
 
     def forward(self, x, body_part):
         features = self.features(x)
-        out = F.relu(features, inplace=True)
+        out = functional.relu(features, inplace=True)
         final_out = []
         for f, bp in zip(out, body_part):
             if int(bp) == 1:
