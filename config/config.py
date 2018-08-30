@@ -13,7 +13,7 @@ class Config(object):
     test_image_paths = '/DATA4_DB3/data/public/MURA-v1.1/valid_image_paths.csv'    # 测试集存放路径
     # test_labeled_studies = '/DATA4_DB3/data/public/MURA-v1.1/valid_labeled_studies.csv'
 
-    # load_model_path = '/DB/rhome/bllai/PyTorchProjects/MURA/checkpoints/CustomDenseNet169/CustomDenseNet169_best_model.pth'
+    # load_model_path = '/DB/rhome/bllai/PyTorchProjects/MURA/checkpoints/ResNet152/ResNet152_best_model.pth'
     load_model_path = None
 
     batch_size = 16                       # batchsize

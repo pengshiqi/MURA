@@ -34,8 +34,8 @@ def train(**kwargs):
     # step 2: configure model
     # model = CustomDenseNet169(num_classes=2)
     # model = MultiDenseNet169(num_classes=2)
-    model = ResNet152(num_classes=2)
-    # model = MultiResolutionNet(num_classes=2)
+    # model = ResNet152(num_classes=2)
+    model = MultiResolutionNet(num_classes=2)
 
     if opt.load_model_path:
         model.load(opt.load_model_path)
@@ -121,7 +121,8 @@ def train(**kwargs):
             if opt.parallel:
                 model.module.save(os.path.join('checkpoints', model.module.model_name, model.module.model_name + '_best_model.pth'))
             else:
-                model.save(os.path.join('checkpoints', model.model_name, model.model_name + '_best_model.pth'))
+                # model.save(os.path.join('checkpoints', model.model_name, model.model_name + '_best_model.pth'))
+                model.save(os.path.join('checkpoints', model.model_name, 'MultiResolution_combine1_best_model.pth'))
             print('Best Model Saved!')
             previous_acc = val_accuracy
 
@@ -187,7 +188,6 @@ def test(**kwargs):
     opt.parse(kwargs)
 
     # data
-    # test_data = MURA_Dataset(opt.data_root, opt.test_image_paths, test=True)
     test_data = MURAClass_Dataset(opt.data_root, opt.test_image_paths, 'all', train=False, test=True)
     test_dataloader = DataLoader(test_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
 
@@ -195,11 +195,14 @@ def test(**kwargs):
     # model = DenseNet169(num_classes=2)
     # model = CustomDenseNet169(num_classes=2)
     # model = MultiDenseNet169(num_classes=2)
-    model = ResNet152(num_classes=2)
-    # model = MultiResolutionNet(num_classes=2)
+    # model = ResNet152(num_classes=2)
+    model = MultiResolutionNet(num_classes=2)
 
     if opt.load_model_path:
         model.load(opt.load_model_path)
+        print('Model has been loaded!')
+    else:
+        print("Don't load model!")
     if opt.use_gpu:
         model.cuda()
     model.eval()
@@ -208,7 +211,7 @@ def test(**kwargs):
     softmax = functional.softmax
     results = []
 
-    for ii, (image, label, body_part, image_path) in tqdm(enumerate(test_dataloader)):
+    for i, (image, label, body_part, image_path) in tqdm(enumerate(test_dataloader)):
         img = Variable(image, volatile=True)
         target = Variable(label)
         if opt.use_gpu:
@@ -237,7 +240,6 @@ def test(**kwargs):
     write_csv(results, opt.result_file)
 
     calculate_cohen_kappa()
-    # return results
 
 
 def write_csv(results, file_name):
@@ -329,3 +331,18 @@ if __name__ == '__main__':
     import fire
 
     fire.Fire()
+
+    # model = ResNet152(num_classes=2)
+    #
+    # if opt.load_model_path:
+    #     model.load(opt.load_model_path)
+    # if opt.use_gpu:
+    #     model.cuda()
+    # model.eval()
+    #
+    # test_data = MURAClass_Dataset(opt.data_root, opt.test_image_paths, 'all', train=False, test=True)
+    # test_dataloader = DataLoader(test_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
+    #
+    # a,b,c = val(model, test_dataloader)
+    #
+    # print(a.value(), b, c)
